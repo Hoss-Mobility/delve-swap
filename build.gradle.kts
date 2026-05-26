@@ -1,8 +1,6 @@
-import org.jetbrains.intellij.platform.gradle.TestFrameworkType
-
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "2.0.20"
+    id("org.jetbrains.kotlin.jvm") version "2.2.0"
     id("org.jetbrains.intellij.platform") version "2.16.0"
 }
 
@@ -26,9 +24,9 @@ dependencies {
             )
         }
         bundledPlugin("org.jetbrains.plugins.go")
-        testFramework(TestFrameworkType.Platform)
     }
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 java {

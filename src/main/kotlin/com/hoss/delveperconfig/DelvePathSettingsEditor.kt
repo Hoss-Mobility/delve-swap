@@ -16,10 +16,10 @@ class DelvePathSettingsEditor<P : RunConfigurationBase<*>> : SettingsEditor<P>()
     private val useGlobalCheckbox = JBCheckBox("Use global dlv.path", true)
     private val pathField = TextFieldWithBrowseButton().apply {
         addBrowseFolderListener(
-            "Select Delve Binary",
-            "Path to a dlv (Delve) executable",
             null,
-            FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor(),
+            FileChooserDescriptorFactory.createSingleFileNoJarsDescriptor()
+                .withTitle("Select Delve Binary")
+                .withDescription("Path to a dlv (Delve) executable"),
         )
     }
     private val hintLabel = JBLabel("Supports \$PROJECT_DIR\$, \$USER_HOME\$, and \$VAR / \${VAR} env vars.")

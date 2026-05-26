@@ -22,7 +22,7 @@ class RegistrySwapListenerTest {
     }
 
     @Test
-    fun `overlapping sessions both see their swap; original restored only after last release`() {
+    fun `overlapping sessions both see their swap and original restored only after last release`() {
         val backend = TestRegistryBackend("/usr/bin/dlv")
         val swapper = RegistrySwapper(backend)
 

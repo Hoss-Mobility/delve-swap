@@ -1,15 +1,21 @@
 package com.hoss.delveperconfig
 
+import com.intellij.execution.configuration.RunConfigurationExtensionBase
+import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.configurations.RunConfigurationBase
 import com.intellij.execution.configurations.RunnerSettings
-import com.intellij.execution.configuration.RunConfigurationExtension
 import com.intellij.openapi.options.SettingsEditor
 import org.jdom.Element
 
-class DelvePathRunConfigurationExtension : RunConfigurationExtension() {
+class DelvePathRunConfigurationExtension : RunConfigurationExtensionBase<RunConfigurationBase<*>>() {
 
     override fun isApplicableFor(configuration: RunConfigurationBase<*>): Boolean =
         GoConfigSupport.isSupported(configuration)
+
+    override fun isEnabledFor(
+        applicableConfiguration: RunConfigurationBase<*>,
+        runnerSettings: RunnerSettings?,
+    ): Boolean = true
 
     @Suppress("UNCHECKED_CAST")
     override fun <P : RunConfigurationBase<*>?> createEditor(configuration: P): SettingsEditor<P>? {
@@ -28,22 +34,19 @@ class DelvePathRunConfigurationExtension : RunConfigurationExtension() {
         DelvePathSettingsStore.get(runConfiguration).writeTo(element)
     }
 
-    override fun validateConfiguration(
-        configuration: RunConfigurationBase<*>,
-        isExecution: Boolean,
-    ) {
-        // Soft check — full validation happens at launch where we know the process env.
-    }
+    override fun getSerializationId(): String = "com.hoss.delveperconfig"
 
-    override fun <T : RunConfigurationBase<*>?> updateJavaParameters(
-        configuration: T & Any,
-        params: com.intellij.execution.configurations.JavaParameters,
+    override fun patchCommandLine(
+        configuration: RunConfigurationBase<*>,
         runnerSettings: RunnerSettings?,
+        cmdLine: GeneralCommandLine,
+        runnerId: String,
     ) {
-        // RunConfigurationExtension only exposes Java-flavoured hooks (updateJavaParameters,
-        // attachToProcess). Delve isn't launched via JavaParameters, and the closed Go plugin
-        // doesn't invoke a generic patchCommandLine entry point on its run profile. The actual
-        // override therefore lives in RegistrySwapListener, which swaps the dlv.path Registry
-        // value around each launch. This extension's job is UI + persistence only.
+        // No-op. We considered patching the dlv path here, but in 2026.1 the Go plugin
+        // builds its dlv command line via internal classes that don't route through
+        // RunConfigurationExtensionBase.patchCommandLine for the debug launch. The actual
+        // override therefore lives in RegistrySwapListener, which swaps the dlv.path
+        // Registry value around each Go debug session. This extension provides the UI
+        // and persists per-config settings; the listener does the runtime override.
     }
 }
