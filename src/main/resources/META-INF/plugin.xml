@@ -11,6 +11,13 @@
         for background.
     ]]></description>
 
+    <change-notes><![CDATA[
+        <b>0.1.0</b>
+        <ul>
+            <li>Initial release. Per-run-configuration Delve binary path override for Go Build and Go Test.</li>
+        </ul>
+    ]]></change-notes>
+
     <depends>com.intellij.modules.platform</depends>
     <depends>org.jetbrains.plugins.go</depends>
 

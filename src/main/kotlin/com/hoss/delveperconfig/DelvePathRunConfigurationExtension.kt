@@ -58,6 +58,10 @@ class DelvePathRunConfigurationExtension : RunConfigurationExtension() {
         params: com.intellij.execution.configurations.JavaParameters,
         runnerSettings: RunnerSettings?,
     ) {
-        // No-op: Delve is not Java. Override mechanism lives in RegistrySwapListener.
+        // RunConfigurationExtension only exposes Java-flavoured hooks (updateJavaParameters,
+        // attachToProcess). Delve isn't launched via JavaParameters, and the closed Go plugin
+        // doesn't invoke a generic patchCommandLine entry point on its run profile. The actual
+        // override therefore lives in RegistrySwapListener, which swaps the dlv.path Registry
+        // value around each launch. This extension's job is UI + persistence only.
     }
 }

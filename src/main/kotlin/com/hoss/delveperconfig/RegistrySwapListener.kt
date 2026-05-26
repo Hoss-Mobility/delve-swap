@@ -116,7 +116,7 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
             return
         }
 
-        log.info("Swapping dlv.path -> $expanded for executor=$executorId")
+        log.info("Swapping dlv.path -> ${java.nio.file.Path.of(expanded).fileName} for executor=$executorId")
         swapper.swap(sessionKey(env), expanded)
     }
 
@@ -134,11 +134,12 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
     }
 
     private fun sessionKey(env: ExecutionEnvironment): String =
-        "${env.executionId}:${env.runProfile.name}"
+        env.executionId.toString()
 
     private fun collectEnv(profile: com.intellij.execution.configurations.RunConfigurationBase<*>): Map<String, String> {
         val base = HashMap(System.getenv())
         val custom = runCatching { profile::class.java.getMethod("getCustomEnvironment").invoke(profile) }
+            .onFailure { thisLogger().debug("Could not read getCustomEnvironment from ${profile::class.java.name}", it) }
             .getOrNull() as? Map<*, *>
         custom?.forEach { (k, v) -> if (k is String && v is String) base[k] = v }
         return base
