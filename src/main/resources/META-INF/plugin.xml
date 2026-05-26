@@ -17,6 +17,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <runConfigurationExtension implementation="com.hoss.delveperconfig.DelvePathRunConfigurationExtension"/>
         <notificationGroup id="Delve Per-Config" displayType="BALLOON"/>
+        <postStartupActivity implementation="com.hoss.delveperconfig.SentinelRecovery"/>
     </extensions>
 
     <projectListeners>
