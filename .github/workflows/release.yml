@@ -13,7 +13,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v3
-      - run: gradle --no-daemon buildPlugin signPlugin publishPlugin
+      - run: gradle --no-daemon buildPlugin verifyPlugin signPlugin publishPlugin
         env:
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}

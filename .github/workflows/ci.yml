@@ -15,3 +15,13 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v3
       - run: gradle --no-daemon test buildPlugin verifyPlugin
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plugin-zip
+          path: build/distributions/*.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verifier-report
+          path: build/reports/pluginVerifier/**
