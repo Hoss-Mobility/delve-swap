@@ -1,18 +1,14 @@
 package com.hoss.delveperconfig
 
+import com.goide.execution.GoRunConfigurationBase
 import com.intellij.execution.configurations.RunConfigurationBase
 
 object GoConfigSupport {
-    // Type IDs come from the closed-source JetBrains Go plugin
-    // (`GoApplicationRunConfigurationType.getId()` and the test equivalent).
-    // They are stable across Go plugin releases in 261.* but should be
-    // re-verified on each major GoLand/Go-plugin upgrade — the Milestone 0
-    // probe in plan section 5 captures the current values at runtime.
-    private val SUPPORTED_TYPE_IDS = setOf(
-        "GoApplicationRunConfiguration",  // Go Build
-        "GoTestRunConfiguration",          // Go Test
-    )
-
+    // Detect Go local run configurations (Go Build, Go Test, Go Application — all of which
+    // extend GoRunConfigurationBase and launch dlv from the global dlv.path). Using the class
+    // hierarchy rather than guessed type-id strings makes this robust across Go-plugin releases.
+    // Go Remote attaches to an already-running dlv and is not a GoRunConfigurationBase, so it
+    // is naturally excluded.
     fun isSupported(config: RunConfigurationBase<*>): Boolean =
-        config.type.id in SUPPORTED_TYPE_IDS
+        config is GoRunConfigurationBase<*>
 }
