@@ -40,6 +40,7 @@ class RegistrySwapper(private val backend: RegistryBackend) {
 
     fun swap(sessionId: String, newValue: String) {
         synchronized(lock) {
+            if (sessionId in active) return  // duplicate dispatch — no-op
             if (active.isEmpty()) {
                 val captured = backend.get()
                 original = captured

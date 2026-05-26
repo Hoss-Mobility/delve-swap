@@ -66,6 +66,19 @@ class RegistrySwapListenerTest {
         assertEquals("/usr/bin/dlv", backend.get())
     }
 
+    @Test
+    fun `duplicate swap for same session id is a no-op`() {
+        val backend = TestRegistryBackend("/usr/bin/dlv")
+        val swapper = RegistrySwapper(backend)
+
+        swapper.swap("a", "/opt/dlv-a")
+        swapper.swap("a", "/opt/dlv-IGNORED")
+        assertEquals("/opt/dlv-a", backend.get())   // second swap with same id is no-op
+
+        swapper.restore("a")
+        assertEquals("/usr/bin/dlv", backend.get()) // single restore returns to original
+    }
+
     private class TestRegistryBackend(initial: String) : RegistryBackend {
         @Volatile private var value: String = initial
         override fun get(): String = value
