@@ -32,16 +32,7 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(25)
-}
-
-// IntelliJ Platform 2026.1 requires JVM target 21; override the toolchain's default target
-tasks.withType<JavaCompile>().configureEach {
-    sourceCompatibility = "21"
-    targetCompatibility = "21"
-}
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
-    compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+    jvmToolchain(21)
 }
 
 intellijPlatform {
@@ -66,7 +57,7 @@ tasks.test {
     useJUnitPlatform()
 }
 
-// No sources or settings to index yet; skip tasks requiring a running IDE or network-only artifacts
-tasks.named("instrumentCode") { enabled = false }
-tasks.named("instrumentTestCode") { enabled = false }
-tasks.named("buildSearchableOptions") { enabled = false }
+// Set skipSearchableOptions=true locally to skip the IDE-launched indexing step.
+tasks.named("buildSearchableOptions") {
+    enabled = providers.gradleProperty("skipSearchableOptions").orNull?.toBoolean() != true
+}
