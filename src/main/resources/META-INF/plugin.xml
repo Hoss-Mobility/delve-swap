@@ -15,6 +15,11 @@
     <depends>org.jetbrains.plugins.go</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <!-- registered in later tasks -->
+        <runConfigurationExtension implementation="com.hoss.delveperconfig.probe.ProbeExtension"/>
     </extensions>
+
+    <projectListeners>
+        <listener class="com.hoss.delveperconfig.probe.ProbeExecutionListener"
+                  topic="com.intellij.execution.ExecutionListener"/>
+    </projectListeners>
 </idea-plugin>
