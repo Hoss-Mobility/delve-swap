@@ -1,0 +1,20 @@
+<idea-plugin>
+    <id>com.hoss.delve-per-config</id>
+    <name>Per-Config Delve Debugger Path</name>
+    <vendor email="stephan.kast@hoss-mobility.com" url="https://hoss-mobility.com">Hoss Mobility</vendor>
+
+    <description><![CDATA[
+        Override the path to the Delve (dlv) debugger binary on a per-run-configuration
+        basis for Go Build and Go Test configurations. Falls back to the global
+        <code>dlv.path</code> setting when no override is set. See
+        <a href="https://youtrack.jetbrains.com/issue/GO-19800">YouTrack GO-19800</a>
+        for background.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.go</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- registered in later tasks -->
+    </extensions>
+</idea-plugin>

@@ -16,10 +16,15 @@ repositories {
 
 dependencies {
     intellijPlatform {
-        create(
-            providers.gradleProperty("platformType").get(),
-            providers.gradleProperty("platformVersion").get(),
-        )
+        val localPath = providers.gradleProperty("localPlatformPath").orNull
+        if (!localPath.isNullOrBlank()) {
+            local(localPath)
+        } else {
+            create(
+                providers.gradleProperty("platformType").get(),
+                providers.gradleProperty("platformVersion").get(),
+            )
+        }
         bundledPlugin("org.jetbrains.plugins.go")
         testFramework(TestFrameworkType.Platform)
     }
@@ -27,7 +32,16 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
+}
+
+// IntelliJ Platform 2026.1 requires JVM target 21; override the toolchain's default target
+tasks.withType<JavaCompile>().configureEach {
+    sourceCompatibility = "21"
+    targetCompatibility = "21"
+}
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
+    compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
 }
 
 intellijPlatform {
@@ -51,3 +65,8 @@ intellijPlatform {
 tasks.test {
     useJUnitPlatform()
 }
+
+// No sources or settings to index yet; skip tasks requiring a running IDE or network-only artifacts
+tasks.named("instrumentCode") { enabled = false }
+tasks.named("instrumentTestCode") { enabled = false }
+tasks.named("buildSearchableOptions") { enabled = false }
