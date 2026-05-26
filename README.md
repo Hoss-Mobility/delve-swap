@@ -29,7 +29,7 @@ carry its own override.
 ## Use
 
 1. Open any Go Build or Go Test run configuration.
-2. Expand the **Delve** section.
+2. Find the **Delve** section (it appears at the bottom of the editor).
 3. Uncheck **Use global dlv.path** and pick a binary.
 4. Save. Debug.
 
