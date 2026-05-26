@@ -108,12 +108,22 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
         val processEnv = collectEnv(profile)
         val expanded = PathExpansion.expand(s.path, project, processEnv)
         val validation = DelvePathValidator.validateExpanded(expanded, overrideEnabled = true)
-        if (validation.severity == DelvePathValidator.Severity.ERROR) {
-            notify(
-                title = "Delve path override skipped",
-                content = "${validation.message}: $expanded. Using global dlv.path.",
-            )
-            return
+        when (validation.severity) {
+            DelvePathValidator.Severity.ERROR -> {
+                notify(
+                    title = "Delve path override skipped",
+                    content = "${validation.message}: $expanded. Using global dlv.path.",
+                )
+                return
+            }
+            DelvePathValidator.Severity.WARN -> {
+                notify(
+                    title = "Delve path warning",
+                    content = "${validation.message}: $expanded. Attempting launch anyway.",
+                )
+                // fall through to swap — OS will surface a clearer error if exec fails.
+            }
+            DelvePathValidator.Severity.OK -> Unit
         }
 
         log.info("Swapping dlv.path -> ${java.nio.file.Path.of(expanded).fileName} for executor=$executorId")

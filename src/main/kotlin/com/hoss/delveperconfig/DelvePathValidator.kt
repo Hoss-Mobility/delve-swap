@@ -20,6 +20,8 @@ object DelvePathValidator {
         if (expandedPath.isBlank()) return Result.ERROR_EMPTY
         val p: Path = Path.of(expandedPath)
         if (!Files.exists(p)) return Result.ERROR_NOT_FOUND
+        // Note: Files.isExecutable() on Windows reflects the file's "readable" attribute,
+        // not POSIX-style execute permission. On Windows this check will almost always pass.
         if (!Files.isExecutable(p)) return Result.WARN_NOT_EXECUTABLE
         return Result.OK
     }
