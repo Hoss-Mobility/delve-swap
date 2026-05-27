@@ -24,6 +24,12 @@ dependencies {
             )
         }
         bundledPlugin("org.jetbrains.plugins.go")
+
+        // Pin the IntelliJ Plugin Verifier CLI. The version bundled with the
+        // Gradle plugin crashes with a ClosedFileSystemException when verifying
+        // against multiple GoLand builds in parallel; newer verifier releases
+        // fix that concurrency bug. See CI run 26505542120.
+        pluginVerifier(providers.gradleProperty("pluginVerifierVersion").get())
     }
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
