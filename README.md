@@ -1,8 +1,8 @@
-# Per-Config Delve Debugger Path
+# DelveSwap
 
-JetBrains GoLand plugin that lets you override the Delve (`dlv`) debugger binary
-on a per-run-configuration basis. Falls back to the global `dlv.path` setting
-when no override is set.
+Per-config Delve binaries for GoLand. A JetBrains GoLand plugin that lets you
+override the Delve (`dlv`) debugger binary on a per-run-configuration basis.
+Falls back to the global `dlv.path` setting when no override is set.
 
 Filed as [GO-19800](https://youtrack.jetbrains.com/issue/GO-19800). Not on
 JetBrains' roadmap, so this plugin fills the gap.
@@ -22,7 +22,7 @@ carry its own override.
 ## Install
 
 1. **Marketplace:** GoLand → Settings → Plugins → Marketplace → search
-   "Per-Config Delve".
+   "DelveSwap".
 2. **From disk:** download the latest `.zip` from Releases, then
    Plugins → ⚙ → Install plugin from disk.
 

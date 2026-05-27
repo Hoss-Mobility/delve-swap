@@ -1,4 +1,4 @@
-# Build the delve-per-config plugin in an isolated container.
+# Build the DelveSwap plugin in an isolated container.
 #
 # Use this when the host environment can't resolve Gradle plugins
 # (e.g., HTTP-client redirect handling issues with certain Gradle/JDK

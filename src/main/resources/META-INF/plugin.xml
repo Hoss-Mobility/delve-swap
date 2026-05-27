@@ -1,6 +1,6 @@
 <idea-plugin>
-    <id>com.hoss.delve-per-config</id>
-    <name>Per-Config Delve Debugger Path</name>
+    <id>com.hoss.delveswap</id>
+    <name>DelveSwap</name>
     <vendor email="stephan.kast@hoss-mobility.com" url="https://hoss-mobility.com">Hoss Mobility</vendor>
 
     <description><![CDATA[
@@ -22,7 +22,7 @@
     <depends>org.jetbrains.plugins.go</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <notificationGroup id="Delve Per-Config" displayType="BALLOON"/>
+        <notificationGroup id="DelveSwap" displayType="BALLOON"/>
         <backgroundPostStartupActivity implementation="com.hoss.delveperconfig.SentinelRecovery"/>
     </extensions>
 

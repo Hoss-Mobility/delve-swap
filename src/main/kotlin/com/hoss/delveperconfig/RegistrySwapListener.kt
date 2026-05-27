@@ -65,7 +65,7 @@ class RegistrySwapper(private val backend: RegistryBackend) {
 
 internal object SentinelStore {
     private val FILE: Path =
-        Path.of(PathManager.getSystemPath(), "delve-per-config", "sentinel")
+        Path.of(PathManager.getSystemPath(), "delveswap", "sentinel")
 
     fun write(original: String) {
         try {
@@ -157,7 +157,7 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
 
     private fun notify(title: String, content: String) {
         com.intellij.notification.NotificationGroupManager.getInstance()
-            .getNotificationGroup("Delve Per-Config")
+            .getNotificationGroup("DelveSwap")
             .createNotification(title, content, com.intellij.notification.NotificationType.WARNING)
             .notify(project)
     }
