@@ -9,6 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # verifyPlugin downloads two full GoLand IDEs (261 + 262) plus the
+      # platform SDK and ~1.5 GB of plugin dependencies, which overruns the
+      # default runner disk. Reclaim the preinstalled toolchains we don't use.
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force || true
+          df -h /
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
