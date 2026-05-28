@@ -157,10 +157,11 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
         // sub-execution that terminates in ~200ms, then the real debug. Our processTerminated
         // for the first runs restore() and clears dlv.path before the real debug reads it, so
         // GoRunUtil.dlv() falls back to the bundled (x86_64) binary. The Go plugin copies our
-        // CUSTOM_DELVE_PATH_KEY onto the second env's UserData, so we re-apply System.property
-        // from there whenever it has been cleared since we last set it.
+        // CUSTOM_DELVE_PATH_KEY onto the second env's UserData, so we always re-apply
+        // System.property from that key — the env's UserData is authoritative for *this*
+        // run, regardless of any leftover JVM property from a previous run.
         val customPath = env.getUserData(com.goide.dlv.DlvDebugProcess.CUSTOM_DELVE_PATH_KEY)
-        if (!customPath.isNullOrEmpty() && System.getProperty("dlv.path").orEmpty().isEmpty()) {
+        if (!customPath.isNullOrEmpty() && System.getProperty("dlv.path") != customPath) {
             System.setProperty("dlv.path", customPath)
             log.info("Re-applied dlv.path=$customPath from env UserData")
         }
