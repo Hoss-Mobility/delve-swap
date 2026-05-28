@@ -1,6 +1,7 @@
 package com.hoss.delveperconfig
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -77,6 +78,29 @@ class RegistrySwapListenerTest {
 
         swapper.restore("a")
         assertEquals("/usr/bin/dlv", backend.get()) // single restore returns to original
+    }
+
+    @Test
+    fun `swap via SystemPropertyBackend exposes new dlv path to System getProperty`() {
+        val savedSystem = System.getProperty("dlv.path")
+        try {
+            System.clearProperty("dlv.path")
+            val swapper = RegistrySwapper(SystemPropertyBackend())
+
+            swapper.swap("exec-1", "/opt/dlv-armv7")
+            assertEquals("/opt/dlv-armv7", System.getProperty("dlv.path"))
+
+            swapper.restore("exec-1")
+            // Original was unset; backend wrote it as "" (empty string).
+            // Acceptable: GoRunUtil treats empty and null equivalently (it null-checks then
+            // length-checks). If this ever changes upstream, switch to clearProperty in restore.
+            val after = System.getProperty("dlv.path")
+            assertTrue(after.isNullOrEmpty(),
+                "expected dlv.path to be cleared or empty after restore, got '$after'")
+        } finally {
+            if (savedSystem == null) System.clearProperty("dlv.path")
+            else System.setProperty("dlv.path", savedSystem)
+        }
     }
 
     private class TestRegistryBackend(initial: String) : RegistryBackend {
