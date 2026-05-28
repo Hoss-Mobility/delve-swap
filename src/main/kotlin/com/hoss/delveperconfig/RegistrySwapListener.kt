@@ -24,11 +24,34 @@ internal class SystemPropertyBackend : RegistryBackend {
     companion object { const val DLV_PATH_KEY = "dlv.path" }
 }
 
-class PlatformRegistryBackend : RegistryBackend {
+internal class IntelliJRegistryBackend : RegistryBackend {
     override fun get(): String = Registry.get(DLV_PATH_KEY).asString()
     override fun set(v: String) { Registry.get(DLV_PATH_KEY).setValue(v) }
 
     companion object { const val DLV_PATH_KEY = "dlv.path" }
+}
+
+/**
+ * Writes through to BOTH the IntelliJ Registry value `dlv.path` and the
+ * `dlv.path` Java System property. The Go plugin's GoRunUtil.dlv(...) reads
+ * the System property (NOT the Registry) when picking the dlv binary to
+ * upload to a remote target, so the System-property write is the load-bearing
+ * one. The Registry write is kept for parity with the user-facing
+ * Settings > Advanced view of `dlv.path`.
+ *
+ * Reads prefer the System-property side (matching what the Go plugin will
+ * actually consult); the Registry side is a fallback for environments where
+ * the bridge has populated only the Registry.
+ */
+class PlatformRegistryBackend(
+    private val system: RegistryBackend = SystemPropertyBackend(),
+    private val registry: RegistryBackend = IntelliJRegistryBackend(),
+) : RegistryBackend {
+    override fun get(): String = system.get().ifEmpty { registry.get() }
+    override fun set(v: String) {
+        registry.set(v)
+        system.set(v)
+    }
 }
 
 /**
