@@ -103,9 +103,38 @@ class RegistrySwapListenerTest {
         }
     }
 
-    private class TestRegistryBackend(initial: String) : RegistryBackend {
-        @Volatile private var value: String = initial
-        override fun get(): String = value
-        override fun set(v: String) { value = v }
+    @Test
+    fun `composite backend writes through to both child backends`() {
+        val systemSide = TestRegistryBackend("")
+        val registrySide = TestRegistryBackend("")
+        val backend = PlatformRegistryBackend(systemSide, registrySide)
+
+        backend.set("/opt/dlv-armv7")
+        assertEquals("/opt/dlv-armv7", systemSide.get())
+        assertEquals("/opt/dlv-armv7", registrySide.get())
     }
+
+    @Test
+    fun `composite backend get prefers system side when non-empty`() {
+        val systemSide = TestRegistryBackend("/from-system")
+        val registrySide = TestRegistryBackend("/from-registry")
+        val backend = PlatformRegistryBackend(systemSide, registrySide)
+
+        assertEquals("/from-system", backend.get())
+    }
+
+    @Test
+    fun `composite backend get falls back to registry when system side is empty`() {
+        val systemSide = TestRegistryBackend("")
+        val registrySide = TestRegistryBackend("/from-registry")
+        val backend = PlatformRegistryBackend(systemSide, registrySide)
+
+        assertEquals("/from-registry", backend.get())
+    }
+}
+
+internal class TestRegistryBackend(initial: String) : RegistryBackend {
+    @Volatile private var value: String = initial
+    override fun get(): String = value
+    override fun set(v: String) { value = v }
 }
