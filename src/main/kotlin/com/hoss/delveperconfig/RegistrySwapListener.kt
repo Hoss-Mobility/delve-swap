@@ -149,14 +149,21 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
 
         log.info("Swapping dlv.path -> $expanded for executor=$executorId")
         swapper.swap(sessionKey(env), expanded)
-
-        // For SSH/remote targets the Go plugin's GoRunningState.createDelveExecutor SKIPS
-        // writing DlvDebugProcess.CUSTOM_DELVE_PATH_KEY (only the LocalTargetEnvironmentRequest
-        // branch sets it). Without that UserData key, DlvDebugProcess falls back to its
-        // bundled per-arch dlv selector for the remote upload — and `armv7l` isn't in its
-        // arch table, so x86_64 wins. Setting it here, before createDelveExecutor runs,
-        // makes our path the binary actually uploaded.
         env.putUserData(com.goide.dlv.DlvDebugProcess.CUSTOM_DELVE_PATH_KEY, expanded)
+    }
+
+    override fun processStarting(executorId: String, env: ExecutionEnvironment) {
+        // A "Run on target" debug fires two ExecutionEnvironments back-to-back: a fast build
+        // sub-execution that terminates in ~200ms, then the real debug. Our processTerminated
+        // for the first runs restore() and clears dlv.path before the real debug reads it, so
+        // GoRunUtil.dlv() falls back to the bundled (x86_64) binary. The Go plugin copies our
+        // CUSTOM_DELVE_PATH_KEY onto the second env's UserData, so we re-apply System.property
+        // from there whenever it has been cleared since we last set it.
+        val customPath = env.getUserData(com.goide.dlv.DlvDebugProcess.CUSTOM_DELVE_PATH_KEY)
+        if (!customPath.isNullOrEmpty() && System.getProperty("dlv.path").orEmpty().isEmpty()) {
+            System.setProperty("dlv.path", customPath)
+            log.info("Re-applied dlv.path=$customPath from env UserData")
+        }
     }
 
     override fun processTerminated(
