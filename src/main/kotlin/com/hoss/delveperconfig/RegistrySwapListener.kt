@@ -57,8 +57,18 @@ class PlatformRegistryBackend(
 /**
  * Captures the original `dlv.path` once on the first active session and restores it once
  * the last session ends. While multiple sessions are active, the backend value is the
- * most-recently-swapped value — the Go plugin reads `dlv.path` synchronously inside swap(),
- * so only the value at swap-time matters per session.
+ * most-recently-swapped value.
+ *
+ * Read semantics: the Go plugin's GoRunUtil.dlv(TargetEnvironmentRequest) reads
+ * System.getProperty("dlv.path") inside GoRunningState.startProcess (not the IntelliJ
+ * Registry), so the PlatformRegistryBackend writes both stores to ensure GoRunUtil sees
+ * our swap. Because GoRunUtil reads the property fresh on each debug start, the value
+ * present at startProcess-time is what the Go plugin uses for that session.
+ *
+ * Known limitation: if two debug sessions are scheduled within a few hundred milliseconds
+ * of each other and target different per-config paths, last-writer-wins — both sessions
+ * see the second swap's value. See [docs/superpowers/plans/...-race.md] for the proposed
+ * follow-up.
  *
  * Writes a sentinel file holding the original so a crash mid-session can be recovered
  * on next IDE startup.
