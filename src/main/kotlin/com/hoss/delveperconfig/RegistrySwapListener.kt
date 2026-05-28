@@ -17,6 +17,13 @@ interface RegistryBackend {
     fun set(v: String)
 }
 
+internal class SystemPropertyBackend : RegistryBackend {
+    override fun get(): String = System.getProperty(DLV_PATH_KEY).orEmpty()
+    override fun set(v: String) { System.setProperty(DLV_PATH_KEY, v) }
+
+    companion object { const val DLV_PATH_KEY = "dlv.path" }
+}
+
 class PlatformRegistryBackend : RegistryBackend {
     override fun get(): String = Registry.get(DLV_PATH_KEY).asString()
     override fun set(v: String) { Registry.get(DLV_PATH_KEY).setValue(v) }
