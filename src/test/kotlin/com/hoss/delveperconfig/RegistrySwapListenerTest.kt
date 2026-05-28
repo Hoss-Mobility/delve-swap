@@ -104,32 +104,14 @@ class RegistrySwapListenerTest {
     }
 
     @Test
-    fun `composite backend writes through to both child backends`() {
-        val systemSide = TestRegistryBackend("")
-        val registrySide = TestRegistryBackend("")
-        val backend = PlatformRegistryBackend(systemSide, registrySide)
+    fun `PlatformRegistryBackend delegates reads and writes to its inner backend`() {
+        val inner = TestRegistryBackend("/initial")
+        val backend = PlatformRegistryBackend(inner)
 
+        assertEquals("/initial", backend.get())
         backend.set("/opt/dlv-armv7")
-        assertEquals("/opt/dlv-armv7", systemSide.get())
-        assertEquals("/opt/dlv-armv7", registrySide.get())
-    }
-
-    @Test
-    fun `composite backend get prefers system side when non-empty`() {
-        val systemSide = TestRegistryBackend("/from-system")
-        val registrySide = TestRegistryBackend("/from-registry")
-        val backend = PlatformRegistryBackend(systemSide, registrySide)
-
-        assertEquals("/from-system", backend.get())
-    }
-
-    @Test
-    fun `composite backend get falls back to registry when system side is empty`() {
-        val systemSide = TestRegistryBackend("")
-        val registrySide = TestRegistryBackend("/from-registry")
-        val backend = PlatformRegistryBackend(systemSide, registrySide)
-
-        assertEquals("/from-registry", backend.get())
+        assertEquals("/opt/dlv-armv7", inner.get())
+        assertEquals("/opt/dlv-armv7", backend.get())
     }
 }
 
