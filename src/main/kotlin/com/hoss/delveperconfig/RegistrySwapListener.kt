@@ -8,7 +8,6 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.registry.Registry
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -17,18 +16,40 @@ interface RegistryBackend {
     fun set(v: String)
 }
 
-class PlatformRegistryBackend : RegistryBackend {
-    override fun get(): String = Registry.get(DLV_PATH_KEY).asString()
-    override fun set(v: String) { Registry.get(DLV_PATH_KEY).setValue(v) }
+internal class SystemPropertyBackend : RegistryBackend {
+    override fun get(): String = System.getProperty(DLV_PATH_KEY).orEmpty()
+    override fun set(v: String) { System.setProperty(DLV_PATH_KEY, v) }
 
     companion object { const val DLV_PATH_KEY = "dlv.path" }
 }
 
 /**
+ * Production backend used by [GlobalRegistrySwapper] and [SentinelRecovery]. Delegates to
+ * [SystemPropertyBackend] — `dlv.path` is read by the Go plugin via
+ * `System.getProperty("dlv.path")` only. It is NOT an IntelliJ Registry key (the Go plugin
+ * never declares it as one), so attempting `Registry.get("dlv.path")` would throw
+ * "Registry key dlv.path is not defined" on a freshly-installed IDE.
+ */
+class PlatformRegistryBackend(
+    private val backend: RegistryBackend = SystemPropertyBackend(),
+) : RegistryBackend by backend
+
+/**
  * Captures the original `dlv.path` once on the first active session and restores it once
  * the last session ends. While multiple sessions are active, the backend value is the
- * most-recently-swapped value — the Go plugin reads `dlv.path` synchronously inside swap(),
- * so only the value at swap-time matters per session.
+ * most-recently-swapped value.
+ *
+ * Read semantics: when a debug session starts, GoRunningState.startProcess calls
+ * GoRunUtil.dlv(TargetEnvironmentRequest), and that method reads
+ * System.getProperty("dlv.path") to pick the dlv binary to upload. The property is read
+ * fresh on each debug start, so the value present at startProcess time is what the Go
+ * plugin uses for that session. PlatformRegistryBackend writes only this System property
+ * — `dlv.path` is not an IntelliJ Registry key.
+ *
+ * Known limitation: if two debug sessions are scheduled within a short enough window
+ * that both swap() calls complete before either startProcess runs, last-writer-wins —
+ * both sessions see the second swap's value. A per-session bridge is tracked as a
+ * follow-up plan.
  *
  * Writes a sentinel file holding the original so a crash mid-session can be recovered
  * on next IDE startup.
@@ -126,8 +147,24 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
             DelvePathValidator.Severity.OK -> Unit
         }
 
-        log.info("Swapping dlv.path -> ${java.nio.file.Path.of(expanded).fileName} for executor=$executorId")
+        log.info("Swapping dlv.path -> $expanded for executor=$executorId")
         swapper.swap(sessionKey(env), expanded)
+        env.putUserData(com.goide.dlv.DlvDebugProcess.CUSTOM_DELVE_PATH_KEY, expanded)
+    }
+
+    override fun processStarting(executorId: String, env: ExecutionEnvironment) {
+        // A "Run on target" debug fires two ExecutionEnvironments back-to-back: a fast build
+        // sub-execution that terminates in ~200ms, then the real debug. Our processTerminated
+        // for the first runs restore() and clears dlv.path before the real debug reads it, so
+        // GoRunUtil.dlv() falls back to the bundled (x86_64) binary. The Go plugin copies our
+        // CUSTOM_DELVE_PATH_KEY onto the second env's UserData, so we always re-apply
+        // System.property from that key — the env's UserData is authoritative for *this*
+        // run, regardless of any leftover JVM property from a previous run.
+        val customPath = env.getUserData(com.goide.dlv.DlvDebugProcess.CUSTOM_DELVE_PATH_KEY)
+        if (!customPath.isNullOrEmpty() && System.getProperty("dlv.path") != customPath) {
+            System.setProperty("dlv.path", customPath)
+            log.info("Re-applied dlv.path=$customPath from env UserData")
+        }
     }
 
     override fun processTerminated(
