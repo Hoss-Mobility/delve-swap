@@ -32,4 +32,10 @@ class PathExpansionTest {
     fun `empty input returns empty`() {
         assertEquals("", PathExpansion.expandEnv("", emptyMap()))
     }
+
+    @Test
+    fun `surrounding whitespace is trimmed before expansion`() {
+        val env = mapOf("ARM_DLV" to "/opt/dlv-arm")
+        assertEquals("/opt/dlv-arm/bin", PathExpansion.expandEnv("  \$ARM_DLV/bin  ", env))
+    }
 }

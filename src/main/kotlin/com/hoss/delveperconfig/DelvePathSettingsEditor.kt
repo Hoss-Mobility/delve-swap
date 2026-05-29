@@ -44,7 +44,7 @@ class DelvePathSettingsEditor<P : RunConfigurationBase<*>> : SettingsEditor<P>()
     override fun applyEditorTo(configuration: P) {
         val s = DelvePathSettingsStore.get(configuration)
         s.useGlobal = useGlobalCheckbox.isSelected
-        s.path = pathField.text
+        s.path = pathField.text.trim()
     }
 
     override fun createEditor(): JComponent {
