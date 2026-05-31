@@ -61,6 +61,12 @@ class PlatformRegistryBackend(
  * on next IDE startup.
  */
 class RegistrySwapper(private val backend: RegistryBackend) {
+    /**
+     * The `dlv.path` value present before any session swapped — captured once at
+     * construction (≈ IDE startup for the app-level [GlobalRegistrySwapper]). This is what
+     * the GLOBAL tier resolves to, and it never changes for the lifetime of the swapper.
+     */
+    val baseline: String = backend.get()
     private var original: String? = null
     private val active = mutableSetOf<String>()
     private val lock = Any()

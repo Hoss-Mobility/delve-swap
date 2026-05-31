@@ -162,6 +162,16 @@ class RegistrySwapListenerTest {
         swapper.restore("a")
         assertFalse(swapper.hasActiveSessions())
     }
+
+    @Test
+    fun `baseline captures the backend value at construction`() {
+        val swapper = RegistrySwapper(TestRegistryBackend("/usr/bin/dlv"))
+        assertEquals("/usr/bin/dlv", swapper.baseline)
+
+        // Baseline is immutable — swapping does not change it.
+        swapper.swap("a", "/opt/dlv-arm")
+        assertEquals("/usr/bin/dlv", swapper.baseline)
+    }
 }
 
 internal class TestRegistryBackend(initial: String) : RegistryBackend {
