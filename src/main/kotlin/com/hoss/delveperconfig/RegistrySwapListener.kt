@@ -222,6 +222,25 @@ internal fun sessionKeyFor(executionId: Long, identity: Int): String =
     if (executionId != 0L) executionId.toString() else "id0:$identity"
 
 /**
+ * Resolve the `dlv.path` value a config wants asserted for its session.
+ *
+ *  - [DelveSource.BUNDLED] -> `""`  — empty makes the Go plugin fall back to its shipped dlv.
+ *  - [DelveSource.GLOBAL]  -> the IDE [baseline] captured at startup.
+ *  - [DelveSource.CUSTOM]  -> the already-expanded, already-validated custom path.
+ *
+ * Pure (no IDE deps) so the resolution table is unit-testable in isolation.
+ */
+internal fun resolveDesiredValue(
+    source: DelveSource,
+    baseline: String,
+    expandedCustomPath: String,
+): String = when (source) {
+    DelveSource.BUNDLED -> ""
+    DelveSource.GLOBAL -> baseline
+    DelveSource.CUSTOM -> expandedCustomPath
+}
+
+/**
  * Re-apply an override at process-start through the ref-counted swapper, so it is always
  * balanced by the matching `processTerminated -> restore`. Idempotent: a no-op if this env
  * already swapped in `processStartScheduled`.
