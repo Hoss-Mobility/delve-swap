@@ -4,16 +4,20 @@ import com.intellij.execution.configurations.RunConfigurationBase
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
-import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBRadioButton
 import com.intellij.util.ui.FormBuilder
 import com.intellij.util.ui.JBUI
+import javax.swing.ButtonGroup
 import javax.swing.JComponent
 import javax.swing.JPanel
 
 class DelvePathSettingsEditor<P : RunConfigurationBase<*>> : SettingsEditor<P>() {
 
-    private val useGlobalCheckbox = JBCheckBox("Use global dlv.path", true)
+    private val bundledRadio = JBRadioButton("GoLand bundled delve")
+    private val globalRadio = JBRadioButton("Global dlv.path")
+    private val customRadio = JBRadioButton("Custom:")
+
     private val pathField = TextFieldWithBrowseButton().apply {
         addBrowseFolderListener(
             null,
@@ -25,32 +29,54 @@ class DelvePathSettingsEditor<P : RunConfigurationBase<*>> : SettingsEditor<P>()
     private val hintLabel = JBLabel("Supports \$PROJECT_DIR\$, \$USER_HOME\$, and \$VAR / \${VAR} env vars.")
 
     init {
-        useGlobalCheckbox.addItemListener { syncEnabled() }
+        ButtonGroup().apply {
+            add(bundledRadio)
+            add(globalRadio)
+            add(customRadio)
+        }
+        val sync = { syncEnabled() }
+        bundledRadio.addItemListener { sync() }
+        globalRadio.addItemListener { sync() }
+        customRadio.addItemListener { sync() }
+        globalRadio.isSelected = true
         syncEnabled()
     }
 
     private fun syncEnabled() {
-        pathField.isEnabled = !useGlobalCheckbox.isSelected
-        hintLabel.isEnabled = !useGlobalCheckbox.isSelected
+        val custom = customRadio.isSelected
+        pathField.isEnabled = custom
+        hintLabel.isEnabled = custom
+    }
+
+    private fun selectedSource(): DelveSource = when {
+        bundledRadio.isSelected -> DelveSource.BUNDLED
+        customRadio.isSelected -> DelveSource.CUSTOM
+        else -> DelveSource.GLOBAL
     }
 
     override fun resetEditorFrom(configuration: P) {
         val s = DelvePathSettingsStore.get(configuration)
-        useGlobalCheckbox.isSelected = s.useGlobal
+        when (s.source) {
+            DelveSource.BUNDLED -> bundledRadio.isSelected = true
+            DelveSource.GLOBAL -> globalRadio.isSelected = true
+            DelveSource.CUSTOM -> customRadio.isSelected = true
+        }
         pathField.text = s.path
         syncEnabled()
     }
 
     override fun applyEditorTo(configuration: P) {
         val s = DelvePathSettingsStore.get(configuration)
-        s.useGlobal = useGlobalCheckbox.isSelected
+        s.source = selectedSource()
         s.path = pathField.text.trim()
     }
 
     override fun createEditor(): JComponent {
         val panel: JPanel = FormBuilder.createFormBuilder()
-            .addComponent(useGlobalCheckbox)
-            .addLabeledComponent("Delve binary:", pathField)
+            .addComponent(JBLabel("Delve binary:"))
+            .addComponent(bundledRadio)
+            .addComponent(globalRadio)
+            .addLabeledComponent(customRadio, pathField)
             .addComponent(hintLabel)
             .panel
         panel.border = JBUI.Borders.empty(8)
