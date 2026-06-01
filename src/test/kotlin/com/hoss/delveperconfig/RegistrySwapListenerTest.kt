@@ -162,6 +162,46 @@ class RegistrySwapListenerTest {
         swapper.restore("a")
         assertFalse(swapper.hasActiveSessions())
     }
+
+    @Test
+    fun `baseline captures the backend value at construction`() {
+        val swapper = RegistrySwapper(TestRegistryBackend("/usr/bin/dlv"))
+        assertEquals("/usr/bin/dlv", swapper.baseline)
+
+        // Baseline is immutable — swapping does not change it.
+        swapper.swap("a", "/opt/dlv-arm")
+        assertEquals("/usr/bin/dlv", swapper.baseline)
+    }
+
+    @Test
+    fun `resolveDesiredValue maps each source to its asserted value`() {
+        assertEquals("", resolveDesiredValue(DelveSource.BUNDLED, "/baseline/dlv", "/custom/dlv"))
+        assertEquals("/baseline/dlv", resolveDesiredValue(DelveSource.GLOBAL, "/baseline/dlv", "/custom/dlv"))
+        assertEquals("/custom/dlv", resolveDesiredValue(DelveSource.CUSTOM, "/baseline/dlv", "/custom/dlv"))
+    }
+
+    @Test
+    fun `a GLOBAL session asserts baseline instead of a concurrent custom session's leaked path`() {
+        // Reproduces the reported bug: Project A (custom ARM) is debugging; Project B (global)
+        // starts and must NOT inherit A's ARM binary.
+        val backend = TestRegistryBackend("")          // no IDE-wide dlv.path -> baseline is empty
+        val swapper = RegistrySwapper(backend)
+
+        // Project A — custom ARM path — starts and swaps.
+        swapper.swap("A", resolveDesiredValue(DelveSource.CUSTOM, swapper.baseline, "/opt/dlv-arm"))
+        assertEquals("/opt/dlv-arm", backend.get())
+
+        // Project B — GLOBAL — starts while A is still active. It asserts the baseline,
+        // overwriting the leaked ARM path for its own startProcess read.
+        swapper.swap("B", resolveDesiredValue(DelveSource.GLOBAL, swapper.baseline, ""))
+        assertEquals("", backend.get())                // B sees the bundled/global default, not ARM
+
+        // B ends first; A is still active so nothing is restored yet.
+        swapper.restore("B")
+        // A ends last; property returns to the captured baseline.
+        swapper.restore("A")
+        assertEquals("", backend.get())
+    }
 }
 
 internal class TestRegistryBackend(initial: String) : RegistryBackend {

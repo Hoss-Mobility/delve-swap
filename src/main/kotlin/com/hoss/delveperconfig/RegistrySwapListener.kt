@@ -61,6 +61,12 @@ class PlatformRegistryBackend(
  * on next IDE startup.
  */
 class RegistrySwapper(private val backend: RegistryBackend) {
+    /**
+     * The `dlv.path` value present before any session swapped — captured once at
+     * construction (≈ IDE startup for the app-level [GlobalRegistrySwapper]). This is what
+     * the GLOBAL tier resolves to, and it never changes for the lifetime of the swapper.
+     */
+    val baseline: String = backend.get()
     private var original: String? = null
     private val active = mutableSetOf<String>()
     private val lock = Any()
@@ -131,33 +137,55 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
         if (profile !is com.intellij.execution.configurations.RunConfigurationBase<*>) return
         if (!GoConfigSupport.isSupported(profile)) return
 
+        // Every supported config asserts its resolved value — including GLOBAL and BUNDLED.
+        // The old early-return left dlv.path untouched, so a non-custom config inherited
+        // whatever a concurrent session had swapped in (the reported cross-project leak).
         val s = DelvePathSettingsStore.get(profile)
-        if (s.useGlobal || s.path.isBlank()) return
+        val desired = computeDesired(s, profile)
 
+        log.info("Asserting dlv.path -> '$desired' for executor=$executorId (source=${s.source})")
+        swapper.swap(sessionKey(env), desired)
+        // Carry a non-empty value onto the second env of a Run-on-Target debug, which reads
+        // CUSTOM_DELVE_PATH_KEY rather than the system property. An empty value (BUNDLED, or
+        // GLOBAL with no IDE-wide dlv.path) means "no override", so we leave the key unset.
+        if (desired.isNotEmpty()) {
+            env.putUserData(com.goide.dlv.DlvDebugProcess.CUSTOM_DELVE_PATH_KEY, desired)
+        }
+    }
+
+    /**
+     * Resolve the dlv.path this config should assert. CUSTOM paths are expanded and validated;
+     * on a validation ERROR we fall back to the baseline (the GLOBAL value) rather than leaving
+     * dlv.path untouched, so the fallback is itself leak-proof.
+     */
+    private fun computeDesired(
+        s: DelvePathSettings,
+        profile: com.intellij.execution.configurations.RunConfigurationBase<*>,
+    ): String {
+        if (s.source != DelveSource.CUSTOM) {
+            return resolveDesiredValue(s.source, swapper.baseline, "")
+        }
         val processEnv = collectEnv(profile)
         val expanded = PathExpansion.expand(s.path, project, processEnv)
         val validation = DelvePathValidator.validateExpanded(expanded, overrideEnabled = true)
-        when (validation.severity) {
+        return when (validation.severity) {
             DelvePathValidator.Severity.ERROR -> {
                 notify(
                     title = "Delve path override skipped",
-                    content = "${validation.message}: $expanded. Using global dlv.path.",
+                    content = "${validation.message}: $expanded. Falling back to global dlv.path.",
                 )
-                return
+                swapper.baseline
             }
             DelvePathValidator.Severity.WARN -> {
                 notify(
                     title = "Delve path warning",
                     content = "${validation.message}: $expanded. Attempting launch anyway.",
                 )
-                // fall through to swap — OS will surface a clearer error if exec fails.
+                resolveDesiredValue(DelveSource.CUSTOM, swapper.baseline, expanded)
             }
-            DelvePathValidator.Severity.OK -> Unit
+            DelvePathValidator.Severity.OK ->
+                resolveDesiredValue(DelveSource.CUSTOM, swapper.baseline, expanded)
         }
-
-        log.info("Swapping dlv.path -> $expanded for executor=$executorId")
-        swapper.swap(sessionKey(env), expanded)
-        env.putUserData(com.goide.dlv.DlvDebugProcess.CUSTOM_DELVE_PATH_KEY, expanded)
     }
 
     override fun processStarting(executorId: String, env: ExecutionEnvironment) {
@@ -214,6 +242,25 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
  */
 internal fun sessionKeyFor(executionId: Long, identity: Int): String =
     if (executionId != 0L) executionId.toString() else "id0:$identity"
+
+/**
+ * Resolve the `dlv.path` value a config wants asserted for its session.
+ *
+ *  - [DelveSource.BUNDLED] -> `""`  — empty makes the Go plugin fall back to its shipped dlv.
+ *  - [DelveSource.GLOBAL]  -> the IDE [baseline] captured at startup.
+ *  - [DelveSource.CUSTOM]  -> the already-expanded, already-validated custom path.
+ *
+ * Pure (no IDE deps) so the resolution table is unit-testable in isolation.
+ */
+internal fun resolveDesiredValue(
+    source: DelveSource,
+    baseline: String,
+    expandedCustomPath: String,
+): String = when (source) {
+    DelveSource.BUNDLED -> ""
+    DelveSource.GLOBAL -> baseline
+    DelveSource.CUSTOM -> expandedCustomPath
+}
 
 /**
  * Re-apply an override at process-start through the ref-counted swapper, so it is always

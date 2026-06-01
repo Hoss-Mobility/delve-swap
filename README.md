@@ -30,14 +30,18 @@ carry its own override.
 
 1. Open any Go Build or Go Test run configuration.
 2. Find the **Delve** section (it appears at the bottom of the editor).
-3. Uncheck **Use global dlv.path** and pick a binary.
+3. Choose one of the three options and (for **Custom**) pick a binary.
 4. Save. Debug.
 
-Paths support:
+Each run configuration chooses its Delve binary from three options:
 
-- IntelliJ path macros: `$PROJECT_DIR$`, `$USER_HOME$`.
-- Environment variables: `$VAR` and `${VAR}` — resolved against the launched
-  process's environment (OS env plus the run config's custom env vars).
+- **GoLand bundled delve** — always use the `dlv` shipped with GoLand, ignoring any IDE-wide `dlv.path`.
+- **Global dlv.path** (default) — use the IDE-wide `dlv.path` captured at startup (equivalent to GoLand's bundled delve when none is configured).
+- **Custom** — use a specific `dlv` binary; supports `$PROJECT_DIR$`, `$USER_HOME$`, and `$VAR` / `${VAR}` env vars.
+
+The chosen value is asserted per debug session, so debugging two projects with different Delve binaries at the same time no longer leaks one project's binary into the other.
+
+> Known limitation: a *Run-on-Target* (SSH) debug set to **GoLand bundled delve** while an IDE-wide `dlv.path` is configured may still use the configured global path, because the Run-on-Target path carries an explicit override rather than an "unset" signal. Local debugging is unaffected.
 
 ## How it works
 
