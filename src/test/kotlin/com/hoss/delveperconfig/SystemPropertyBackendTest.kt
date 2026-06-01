@@ -2,6 +2,7 @@ package com.hoss.delveperconfig
 
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -40,5 +41,12 @@ class SystemPropertyBackendTest {
     fun `get returns empty string when property is unset`() {
         System.clearProperty("dlv.path")
         assertEquals("", SystemPropertyBackend().get())
+    }
+
+    @Test
+    fun `set with empty string clears the property`() {
+        System.setProperty("dlv.path", "/opt/dlv-armv7")
+        SystemPropertyBackend().set("")
+        assertNull(System.getProperty("dlv.path"))
     }
 }

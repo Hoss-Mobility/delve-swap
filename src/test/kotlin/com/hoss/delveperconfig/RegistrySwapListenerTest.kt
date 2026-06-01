@@ -1,6 +1,9 @@
 package com.hoss.delveperconfig
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.concurrent.CountDownLatch
@@ -91,16 +94,24 @@ class RegistrySwapListenerTest {
             assertEquals("/opt/dlv-armv7", System.getProperty("dlv.path"))
 
             swapper.restore("exec-1")
-            // Original was unset; backend wrote it as "" (empty string).
-            // Acceptable: GoRunUtil treats empty and null equivalently (it null-checks then
-            // length-checks). If this ever changes upstream, switch to clearProperty in restore.
-            val after = System.getProperty("dlv.path")
-            assertTrue(after.isNullOrEmpty(),
-                "expected dlv.path to be cleared or empty after restore, got '$after'")
+            // Original was unset, so restore clears the property (set("") -> clearProperty).
+            assertNull(System.getProperty("dlv.path"))
         } finally {
             if (savedSystem == null) System.clearProperty("dlv.path")
             else System.setProperty("dlv.path", savedSystem)
         }
+    }
+
+    @Test
+    fun `sessionKeyFor uses executionId when nonzero`() {
+        assertEquals("42", sessionKeyFor(42L, 999))
+    }
+
+    @Test
+    fun `sessionKeyFor falls back to identity when executionId is zero`() {
+        assertEquals("id0:111", sessionKeyFor(0L, 111))
+        // two zero-id sessions with distinct env identities must never collide
+        assertNotEquals(sessionKeyFor(0L, 111), sessionKeyFor(0L, 222))
     }
 
     @Test
@@ -112,6 +123,44 @@ class RegistrySwapListenerTest {
         backend.set("/opt/dlv-armv7")
         assertEquals("/opt/dlv-armv7", inner.get())
         assertEquals("/opt/dlv-armv7", backend.get())
+    }
+
+    @Test
+    fun `reapplyOnStarting routes through swapper and is balanced by restore`() {
+        val backend = TestRegistryBackend("/usr/bin/dlv")
+        val swapper = RegistrySwapper(backend)
+
+        // Run-on-Target: the build sub-execution swaps then terminates, clearing back to original.
+        swapper.swap("build", "/opt/dlv-arm")
+        swapper.restore("build")
+        assertEquals("/usr/bin/dlv", backend.get())
+
+        // The real debug re-applies the override at process-start via the seam...
+        reapplyOnStarting(swapper, "debug", "/opt/dlv-arm")
+        assertEquals("/opt/dlv-arm", backend.get())
+
+        // ...and its own processTerminated restores it — no leak past the session.
+        swapper.restore("debug")
+        assertEquals("/usr/bin/dlv", backend.get())
+    }
+
+    @Test
+    fun `reapplyOnStarting is a no-op for null or empty path`() {
+        val backend = TestRegistryBackend("/usr/bin/dlv")
+        val swapper = RegistrySwapper(backend)
+        reapplyOnStarting(swapper, "x", null)
+        reapplyOnStarting(swapper, "y", "")
+        assertEquals("/usr/bin/dlv", backend.get())  // nothing swapped
+    }
+
+    @Test
+    fun `hasActiveSessions reflects swap and restore`() {
+        val swapper = RegistrySwapper(TestRegistryBackend("/usr/bin/dlv"))
+        assertFalse(swapper.hasActiveSessions())
+        swapper.swap("a", "/opt/dlv-a")
+        assertTrue(swapper.hasActiveSessions())
+        swapper.restore("a")
+        assertFalse(swapper.hasActiveSessions())
     }
 }
 

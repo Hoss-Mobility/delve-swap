@@ -43,25 +43,33 @@ Paths support:
 
 Before each Go debug launch, an `ExecutionListener` reads the override from the
 run configuration, expands macros and env vars, validates the resulting path,
-and temporarily swaps the IDE's global `dlv.path` Registry value. The original
-value is restored as soon as the debug process terminates. A sentinel file is
-written before the swap so the original value can be recovered automatically
-on next IDE start if the IDE crashes mid-session.
+and temporarily sets the `dlv.path` JVM system property — the value the Go
+plugin reads (via `GoRunUtil.dlv()`) when choosing which `dlv` binary to
+launch. The original value is restored as soon as the debug process terminates.
+A sentinel file is written before the swap so the original value can be
+recovered automatically on next IDE start if the IDE crashes mid-session.
+
+Run-on-Target (SSH) debug runs as two back-to-back executions — a short build
+phase, then the real debug. The override is re-applied at the second phase's
+process start so it survives between the two; this is what makes per-config
+overrides work for remote targets, not only local debug.
 
 Concurrent debug sessions are tracked with a small reference count: the
 original `dlv.path` is captured on the first active session and only restored
-after the last one ends. During overlapping sessions the Registry value shows
-the most-recently-swapped path, which is harmless because the Go plugin reads
-`dlv.path` synchronously at launch time, not continuously.
+after the last one ends. During overlapping sessions the `dlv.path` property
+shows the most-recently-swapped path, which is harmless because the Go plugin
+reads `dlv.path` synchronously at launch time, not continuously.
 
 ## Limitations
 
-- **Go Build and Go Test only.** Go Remote attaches to an already-running
-  `dlv` on a remote host, so a local-binary override doesn't apply.
-- **Targets GoLand 2026.1+.** Older versions are not supported in v0.1.
-- **Concurrent debug sessions:** while two sessions are in flight, the Registry
-  briefly holds the second session's path; this is invisible in practice but
-  worth knowing if you depend on inspecting `dlv.path` mid-debug.
+- **Go Build and Go Test only** — including their Run-on-Target (SSH) variants.
+  Go Remote attaches to an already-running `dlv` on a remote host, so a
+  local-binary override doesn't apply there.
+- **Targets GoLand 2026.1+.** Older versions are not supported.
+- **Concurrent debug sessions:** while two sessions are in flight, the
+  `dlv.path` property briefly holds the second session's path; this is invisible
+  in practice but worth knowing if you depend on inspecting `dlv.path`
+  mid-debug.
 
 ## Trust boundary (important for shared repos)
 

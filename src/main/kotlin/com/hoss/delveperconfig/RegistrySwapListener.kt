@@ -18,7 +18,13 @@ interface RegistryBackend {
 
 internal class SystemPropertyBackend : RegistryBackend {
     override fun get(): String = System.getProperty(DLV_PATH_KEY).orEmpty()
-    override fun set(v: String) { System.setProperty(DLV_PATH_KEY, v) }
+
+    // swap() only ever sets a validated, non-blank path, so an empty value reaches set() only
+    // when restoring/recovering an original that was absent — clear it rather than leaving a
+    // stale empty string (the Go plugin treats empty and absent equivalently).
+    override fun set(v: String) {
+        if (v.isEmpty()) System.clearProperty(DLV_PATH_KEY) else System.setProperty(DLV_PATH_KEY, v)
+    }
 
     companion object { const val DLV_PATH_KEY = "dlv.path" }
 }
@@ -82,6 +88,8 @@ class RegistrySwapper(private val backend: RegistryBackend) {
             }
         }
     }
+
+    fun hasActiveSessions(): Boolean = synchronized(lock) { active.isNotEmpty() }
 }
 
 internal object SentinelStore {
@@ -154,17 +162,14 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
 
     override fun processStarting(executorId: String, env: ExecutionEnvironment) {
         // A "Run on target" debug fires two ExecutionEnvironments back-to-back: a fast build
-        // sub-execution that terminates in ~200ms, then the real debug. Our processTerminated
-        // for the first runs restore() and clears dlv.path before the real debug reads it, so
-        // GoRunUtil.dlv() falls back to the bundled (x86_64) binary. The Go plugin copies our
-        // CUSTOM_DELVE_PATH_KEY onto the second env's UserData, so we always re-apply
-        // System.property from that key — the env's UserData is authoritative for *this*
-        // run, regardless of any leftover JVM property from a previous run.
+        // sub-execution that terminates in ~200ms, then the real debug. The build run's
+        // processTerminated restores dlv.path before the real debug reads it. The Go plugin
+        // copies our CUSTOM_DELVE_PATH_KEY onto the second env, so we re-apply the override
+        // here — but through the ref-counted swapper, so it is balanced by *this* env's
+        // processTerminated -> restore and never leaks past the session.
         val customPath = env.getUserData(com.goide.dlv.DlvDebugProcess.CUSTOM_DELVE_PATH_KEY)
-        if (!customPath.isNullOrEmpty() && System.getProperty("dlv.path") != customPath) {
-            System.setProperty("dlv.path", customPath)
-            log.info("Re-applied dlv.path=$customPath from env UserData")
-        }
+        reapplyOnStarting(swapper, sessionKey(env), customPath)
+        if (!customPath.isNullOrEmpty()) log.info("Re-applied dlv.path=$customPath from env UserData")
     }
 
     override fun processTerminated(
@@ -181,7 +186,7 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
     }
 
     private fun sessionKey(env: ExecutionEnvironment): String =
-        env.executionId.toString()
+        sessionKeyFor(env.executionId, System.identityHashCode(env))
 
     private fun collectEnv(profile: com.intellij.execution.configurations.RunConfigurationBase<*>): Map<String, String> {
         val base = HashMap(System.getenv())
@@ -198,4 +203,23 @@ class RegistrySwapListener(private val project: Project) : ExecutionListener {
             .createNotification(title, content, com.intellij.notification.NotificationType.WARNING)
             .notify(project)
     }
+}
+
+/**
+ * Pure session-key derivation, extracted for testability. `executionId` is unique when the
+ * platform assigned it, but defaults to 0L for launches that never went through
+ * `assignNewExecutionId()` (e.g. the internally-created Run-on-Target debug env). When it is
+ * 0 we fall back to the env's identity hash, which is distinct for the distinct env objects
+ * of concurrent runs — so two id-0 sessions never share a key.
+ */
+internal fun sessionKeyFor(executionId: Long, identity: Int): String =
+    if (executionId != 0L) executionId.toString() else "id0:$identity"
+
+/**
+ * Re-apply an override at process-start through the ref-counted swapper, so it is always
+ * balanced by the matching `processTerminated -> restore`. Idempotent: a no-op if this env
+ * already swapped in `processStartScheduled`.
+ */
+internal fun reapplyOnStarting(swapper: RegistrySwapper, sessionKey: String, customPath: String?) {
+    if (!customPath.isNullOrEmpty()) swapper.swap(sessionKey, customPath)
 }
