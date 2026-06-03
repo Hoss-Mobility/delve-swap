@@ -1,4 +1,4 @@
-package com.hoss.delveperconfig
+package com.hoss.delveswap
 
 import com.intellij.execution.configurations.RunConfigurationBase
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
@@ -10,9 +10,8 @@ import com.intellij.util.ui.FormBuilder
 import com.intellij.util.ui.JBUI
 import javax.swing.ButtonGroup
 import javax.swing.JComponent
-import javax.swing.JPanel
 
-class DelvePathSettingsEditor<P : RunConfigurationBase<*>> : SettingsEditor<P>() {
+internal class DelvePathSettingsEditor<P : RunConfigurationBase<*>> : SettingsEditor<P>() {
 
     private val bundledRadio = JBRadioButton("GoLand bundled delve")
     private val globalRadio = JBRadioButton("Global dlv.path")
@@ -29,33 +28,24 @@ class DelvePathSettingsEditor<P : RunConfigurationBase<*>> : SettingsEditor<P>()
     private val hintLabel = JBLabel("Supports \$PROJECT_DIR\$, \$USER_HOME\$, and \$VAR / \${VAR} env vars.")
 
     init {
-        ButtonGroup().apply {
-            add(bundledRadio)
-            add(globalRadio)
-            add(customRadio)
+        val group = ButtonGroup()
+        listOf(bundledRadio, globalRadio, customRadio).forEach {
+            group.add(it)
+            it.addItemListener { syncEnabled() }
         }
-        val sync = { syncEnabled() }
-        bundledRadio.addItemListener { sync() }
-        globalRadio.addItemListener { sync() }
-        customRadio.addItemListener { sync() }
         globalRadio.isSelected = true
         syncEnabled()
     }
 
+    // Greying the path field when Custom isn't selected tells the user it would be ignored.
     private fun syncEnabled() {
         val custom = customRadio.isSelected
         pathField.isEnabled = custom
         hintLabel.isEnabled = custom
     }
 
-    private fun selectedSource(): DelveSource = when {
-        bundledRadio.isSelected -> DelveSource.BUNDLED
-        customRadio.isSelected -> DelveSource.CUSTOM
-        else -> DelveSource.GLOBAL
-    }
-
     override fun resetEditorFrom(configuration: P) {
-        val s = DelvePathSettingsStore.get(configuration)
+        val s = configuration.getDelveSettings()
         when (s.source) {
             DelveSource.BUNDLED -> bundledRadio.isSelected = true
             DelveSource.GLOBAL -> globalRadio.isSelected = true
@@ -66,20 +56,20 @@ class DelvePathSettingsEditor<P : RunConfigurationBase<*>> : SettingsEditor<P>()
     }
 
     override fun applyEditorTo(configuration: P) {
-        val s = DelvePathSettingsStore.get(configuration)
-        s.source = selectedSource()
-        s.path = pathField.text.trim()
+        val source = when {
+            bundledRadio.isSelected -> DelveSource.BUNDLED
+            customRadio.isSelected -> DelveSource.CUSTOM
+            else -> DelveSource.GLOBAL
+        }
+        configuration.setDelveSettings(DelvePathSettings(source = source, path = pathField.text.trim()))
     }
 
-    override fun createEditor(): JComponent {
-        val panel: JPanel = FormBuilder.createFormBuilder()
-            .addComponent(JBLabel("Delve binary:"))
-            .addComponent(bundledRadio)
-            .addComponent(globalRadio)
-            .addLabeledComponent(customRadio, pathField)
-            .addComponent(hintLabel)
-            .panel
-        panel.border = JBUI.Borders.empty(8)
-        return panel
-    }
+    override fun createEditor(): JComponent = FormBuilder.createFormBuilder()
+        .addComponent(JBLabel("Delve binary:"))
+        .addComponent(bundledRadio)
+        .addComponent(globalRadio)
+        .addLabeledComponent(customRadio, pathField)
+        .addComponent(hintLabel)
+        .panel
+        .apply { border = JBUI.Borders.empty(8) }
 }

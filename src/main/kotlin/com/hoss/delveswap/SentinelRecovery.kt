@@ -1,4 +1,7 @@
-package com.hoss.delveperconfig
+// Crash recovery: on the next IDE start after a mid-debug crash, read the sentinel file
+// (written by DlvPathSwapper before each swap) and restore the original dlv.path so the
+// user's IDE-wide setting isn't permanently overwritten.
+package com.hoss.delveswap
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
@@ -14,11 +17,13 @@ internal sealed interface RecoveryAction {
     data object Discard : RecoveryAction         // invalid/garbage sentinel -> leave dlv.path
 }
 
+// Blank sentinel means "original was unset" → Clear (not ERROR_EMPTY). The validator would
+// wrongly classify "" as ERROR; we short-circuit it.
 internal fun recoveryAction(recovered: String?): RecoveryAction = when {
     recovered == null -> RecoveryAction.None
     recovered.isBlank() -> RecoveryAction.Clear
-    DelvePathValidator.validateExpanded(recovered, overrideEnabled = true)
-        .severity == DelvePathValidator.Severity.ERROR -> RecoveryAction.Discard
+    DelvePathValidator.validate(recovered).severity == DelvePathValidator.Severity.ERROR ->
+        RecoveryAction.Discard
     else -> RecoveryAction.Restore(recovered)
 }
 
@@ -39,15 +44,16 @@ internal fun recoveryAction(recovered: String?): RecoveryAction = when {
 class SentinelRecovery : ProjectActivity {
     override suspend fun execute(project: Project) {
         if (!firstRun.compareAndSet(false, true)) return
-        if (service<GlobalRegistrySwapper>().swapper.hasActiveSessions()) return
-        val backend = PlatformRegistryBackend()
-        when (val action = recoveryAction(SentinelStore.readAndClear())) {
+        if (service<GlobalDlvPathSwapper>().swapper.hasActiveSessions()) return
+        val log = thisLogger()
+        val backend = SystemPropertyBackend()
+        val sentinel = SentinelStore.default()
+        when (val action = recoveryAction(sentinel.readAndClear())) {
             RecoveryAction.None -> Unit
             RecoveryAction.Clear -> backend.set("")
-            RecoveryAction.Discard ->
-                thisLogger().warn("Sentinel contained an invalid dlv.path; discarding.")
+            RecoveryAction.Discard -> log.warn("Sentinel contained an invalid dlv.path; discarding.")
             is RecoveryAction.Restore -> {
-                thisLogger().warn("Recovered leaked dlv.path from sentinel; restoring previous value.")
+                log.warn("Recovered leaked dlv.path from sentinel; restoring previous value.")
                 backend.set(action.value)
             }
         }

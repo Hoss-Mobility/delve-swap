@@ -21,10 +21,11 @@ carry its own override.
 
 ## Install
 
-1. **Marketplace:** GoLand → Settings → Plugins → Marketplace → search
-   "DelveSwap".
-2. **From disk:** download the latest `.zip` from Releases, then
-   Plugins → ⚙ → Install plugin from disk.
+1. **From disk (always available):** download the latest `.zip` from
+   [Releases](https://github.com/Hoss-Mobility/delve-swap/releases), then
+   GoLand → Settings → Plugins → ⚙ → Install plugin from disk.
+2. **Marketplace:** once the plugin is approved on the JetBrains Marketplace,
+   GoLand → Settings → Plugins → Marketplace → search "DelveSwap".
 
 ## Use
 
@@ -61,8 +62,10 @@ overrides work for remote targets, not only local debug.
 Concurrent debug sessions are tracked with a small reference count: the
 original `dlv.path` is captured on the first active session and only restored
 after the last one ends. During overlapping sessions the `dlv.path` property
-shows the most-recently-swapped path, which is harmless because the Go plugin
-reads `dlv.path` synchronously at launch time, not continuously.
+holds the most-recently-swapped path; the Go plugin reads `dlv.path`
+synchronously at `startProcess`, so each session normally picks up its own
+value at the right moment. The exception — a real (rare) race — is below
+under Limitations.
 
 ## Limitations
 
@@ -70,10 +73,11 @@ reads `dlv.path` synchronously at launch time, not continuously.
   Go Remote attaches to an already-running `dlv` on a remote host, so a
   local-binary override doesn't apply there.
 - **Targets GoLand 2026.1+.** Older versions are not supported.
-- **Concurrent debug sessions:** while two sessions are in flight, the
-  `dlv.path` property briefly holds the second session's path; this is invisible
-  in practice but worth knowing if you depend on inspecting `dlv.path`
-  mid-debug.
+- **Concurrent debug sessions, narrow race:** if two debug sessions are
+  scheduled close enough together that both swap calls complete before either
+  session's `startProcess` reads `dlv.path`, last-writer-wins — both sessions
+  see the second swap's value. Practically uncommon (the window is sub-millisecond
+  on a single thread); a per-session bridge is tracked as a follow-up plan.
 
 ## Trust boundary (important for shared repos)
 

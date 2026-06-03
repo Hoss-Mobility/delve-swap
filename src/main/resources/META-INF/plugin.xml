@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.hoss.delveswap</id>
     <name>DelveSwap</name>
-    <vendor email="stephan.kast@hoss-mobility.com" url="https://hoss-mobility.com">Hoss Mobility</vendor>
+    <vendor url="https://github.com/Hoss-Mobility/delve-swap">Hoss Mobility</vendor>
 
     <description><![CDATA[
         Override the path to the Delve (dlv) debugger binary on a per-run-configuration
@@ -12,6 +12,12 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>1.1.0</b>
+        <ul>
+            <li>Fixed: the GLOBAL tier now picks up edits to the IDE-wide <code>dlv.path</code> made after IDE startup; previously the value was snapshot once.</li>
+            <li>Capped plugin compatibility at GoLand 2026.2 (was unbounded), so future incompatible GoLand releases will disable the plugin rather than crashing on launch.</li>
+            <li>Internal refactor: renamed Registry-* types to DlvPath-* (the underlying value is a JVM system property, not an IntelliJ Registry key); package renamed to <code>com.hoss.delveswap</code>. Existing v0.1.0 run-config XML continues to deserialize.</li>
+        </ul>
         <b>1.0.0</b>
         <ul>
             <li>Per-run-configuration Delve binary path override now works for <i>Run on Target</i> (SSH) debug sessions, not only local debug.</li>
@@ -28,19 +34,20 @@
     <depends>org.jetbrains.plugins.go</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <!-- The id below must match NOTIFICATION_GROUP_ID in DlvPathSwapListener.kt. -->
         <notificationGroup id="DelveSwap" displayType="BALLOON"/>
-        <backgroundPostStartupActivity implementation="com.hoss.delveperconfig.SentinelRecovery"/>
+        <backgroundPostStartupActivity implementation="com.hoss.delveswap.SentinelRecovery"/>
     </extensions>
 
     <!-- Go-specific extension point: this is what actually renders an editor tab on Go
          run configurations. The platform's com.intellij.runConfigurationExtension does NOT
          surface in the Go run-config editor. -->
     <extensions defaultExtensionNs="com.goide">
-        <runConfigurationExtension implementation="com.hoss.delveperconfig.DelvePathRunConfigurationExtension"/>
+        <runConfigurationExtension implementation="com.hoss.delveswap.DelvePathRunConfigurationExtension"/>
     </extensions>
 
     <projectListeners>
-        <listener class="com.hoss.delveperconfig.RegistrySwapListener"
+        <listener class="com.hoss.delveswap.DlvPathSwapListener"
                   topic="com.intellij.execution.ExecutionListener"/>
     </projectListeners>
 </idea-plugin>

@@ -51,7 +51,10 @@ intellijPlatform {
         version = providers.gradleProperty("pluginVersion")
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            untilBuild = provider { null }
+            // Capped to next major (verifyPlugin in CI checks 261 + 262). Bump as new GoLand
+            // releases ship — leaving it open would silently crash users on a future
+            // incompatible GoLand instead of disabling the plugin.
+            untilBuild = providers.gradleProperty("pluginUntilBuild")
         }
     }
     signing {

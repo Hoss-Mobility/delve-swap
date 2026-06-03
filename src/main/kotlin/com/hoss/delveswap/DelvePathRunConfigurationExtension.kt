@@ -1,4 +1,4 @@
-package com.hoss.delveperconfig
+package com.hoss.delveswap
 
 import com.goide.execution.GoRunConfigurationBase
 import com.goide.execution.extension.GoRunConfigurationExtension
@@ -18,7 +18,7 @@ import org.jdom.Element
  *
  * The actual dlv-binary override is NOT done here: the Go plugin launches dlv from its own
  * debugger classes (com.goide.dlv.*) reading the global `dlv.path`, not via GoExecutor's
- * build/run command line. RegistrySwapListener performs the swap at debug-launch time.
+ * build/run command line. DlvPathSwapListener performs the swap at debug-launch time.
  */
 class DelvePathRunConfigurationExtension : GoRunConfigurationExtension() {
 
@@ -36,13 +36,14 @@ class DelvePathRunConfigurationExtension : GoRunConfigurationExtension() {
     override fun getEditorTitle(): String = "Delve"
 
     override fun readExternal(runConfiguration: GoRunConfigurationBase<*>, element: Element) {
-        val s = DelvePathSettings().apply { readFrom(element) }
-        DelvePathSettingsStore.set(runConfiguration, s)
+        runConfiguration.setDelveSettings(DelvePathSettings.readFrom(element))
     }
 
     override fun writeExternal(runConfiguration: GoRunConfigurationBase<*>, element: Element) {
-        DelvePathSettingsStore.get(runConfiguration).writeTo(element)
+        runConfiguration.getDelveSettings().writeTo(element)
     }
 
+    // Frozen at the legacy id so v0.1.0 run-config XML keeps deserializing into this extension
+    // after the package rename. Do not change without a migration story for existing user data.
     override fun getSerializationId(): String = "com.hoss.delveperconfig"
 }

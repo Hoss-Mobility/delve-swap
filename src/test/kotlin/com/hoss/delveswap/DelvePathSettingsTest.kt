@@ -1,4 +1,4 @@
-package com.hoss.delveperconfig
+package com.hoss.delveswap
 
 import org.jdom.Element
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -18,7 +18,7 @@ class DelvePathSettingsTest {
         val parent = Element("configuration")
         s.writeTo(parent)
 
-        val loaded = DelvePathSettings().apply { readFrom(parent) }
+        val loaded = DelvePathSettings.readFrom(parent)
         assertEquals(DelveSource.CUSTOM, loaded.source)
         assertEquals("\$PROJECT_DIR\$/dlv", loaded.path)
     }
@@ -29,14 +29,14 @@ class DelvePathSettingsTest {
         val parent = Element("configuration")
         s.writeTo(parent)
 
-        val loaded = DelvePathSettings().apply { readFrom(parent) }
+        val loaded = DelvePathSettings.readFrom(parent)
         assertEquals(DelveSource.BUNDLED, loaded.source)
     }
 
     @Test
     fun `absent element decodes to defaults`() {
         val parent = Element("configuration")
-        val loaded = DelvePathSettings().apply { readFrom(parent) }
+        val loaded = DelvePathSettings.readFrom(parent)
         assertEquals(DelveSource.GLOBAL, loaded.source)
         assertEquals("", loaded.path)
     }
@@ -56,7 +56,7 @@ class DelvePathSettingsTest {
                 .setAttribute("useGlobal", "false")
                 .setAttribute(DelvePathSettings.ATTR_PATH, "/opt/dlv-arm"),
         )
-        val loaded = DelvePathSettings().apply { readFrom(parent) }
+        val loaded = DelvePathSettings.readFrom(parent)
         assertEquals(DelveSource.CUSTOM, loaded.source)
         assertEquals("/opt/dlv-arm", loaded.path)
     }
@@ -69,7 +69,7 @@ class DelvePathSettingsTest {
                 .setAttribute("useGlobal", "true")
                 .setAttribute(DelvePathSettings.ATTR_PATH, ""),
         )
-        val loaded = DelvePathSettings().apply { readFrom(parent) }
+        val loaded = DelvePathSettings.readFrom(parent)
         assertEquals(DelveSource.GLOBAL, loaded.source)
     }
 
@@ -81,7 +81,7 @@ class DelvePathSettingsTest {
                 .setAttribute(DelvePathSettings.ATTR_SOURCE, "BUNDLED")
                 .setAttribute("useGlobal", "false"),
         )
-        val loaded = DelvePathSettings().apply { readFrom(parent) }
+        val loaded = DelvePathSettings.readFrom(parent)
         assertEquals(DelveSource.BUNDLED, loaded.source)
     }
 }

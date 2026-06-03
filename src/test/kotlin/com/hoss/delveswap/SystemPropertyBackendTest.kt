@@ -1,4 +1,4 @@
-package com.hoss.delveperconfig
+package com.hoss.delveswap
 
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
