@@ -11,8 +11,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # Mapped to env at job level so step-level `if: env.PUBLISH_TOKEN != ''`
-    # works (secrets.* is not allowed in step `if` expressions).
+    # Mapped to env so the step-level `if:` gates below read one canonical
+    # value (and to keep the expression free of the secrets context).
     env:
       PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
     steps:
@@ -63,7 +63,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          ZIP=$(ls build/distributions/*-signed.zip)
+          ZIP="build/distributions/delveswap-${GITHUB_REF_NAME#v}-signed.zip"
+          if [ ! -f "$ZIP" ]; then
+            echo "::error::$ZIP not found — signing secrets missing, or tag does not match pluginVersion in gradle.properties."
+            exit 1
+          fi
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "$ZIP" --repo "$GITHUB_REPOSITORY" --clobber
           elif [ -s release-notes.md ]; then

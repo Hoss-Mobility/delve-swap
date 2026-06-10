@@ -71,6 +71,14 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.publishPlugin {
+    // The release workflow runs publishPlugin in a separate Gradle invocation
+    // where signPlugin is skipped/UP-TO-DATE (didWork=false), which would make
+    // the default convention fall back to the UNSIGNED buildPlugin zip. Pin to
+    // the signed artifact unconditionally.
+    archiveFile = tasks.signPlugin.flatMap { it.signedArchiveFile }
+}
+
 // Set skipSearchableOptions=true locally to skip the IDE-launched indexing step.
 tasks.named("buildSearchableOptions") {
     enabled = providers.gradleProperty("skipSearchableOptions").orNull?.toBoolean() != true
