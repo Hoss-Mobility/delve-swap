@@ -3,9 +3,18 @@ on:
   push:
     tags: ['v*']
 
+# contents: write is required to create the GitHub Release and upload assets;
+# the default GITHUB_TOKEN is read-only.
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Mapped to env at job level so step-level `if: env.PUBLISH_TOKEN != ''`
+    # works (secrets.* is not allowed in step `if` expressions).
+    env:
+      PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       # verifyPlugin downloads two full GoLand IDEs (261 + 262) plus the
@@ -21,9 +30,50 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v3
-      - run: gradle --no-daemon buildPlugin verifyPlugin signPlugin publishPlugin
+      # Packaging must never depend on Marketplace publishing succeeding
+      # (the v1.0.0 release produced no asset because publishPlugin failed
+      # in the same Gradle invocation), so publishPlugin runs separately below.
+      - name: Build, verify, sign
+        run: gradle --no-daemon test buildPlugin verifyPlugin signPlugin
         env:
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
-          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: verifier-report
+          path: build/reports/pluginVerifier/**
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" {flag=1; next}
+            /^## \[/ {flag=0}
+            flag' CHANGELOG.md > release-notes.md
+          if [ -s release-notes.md ]; then
+            echo "Extracted notes for $VERSION:"
+            cat release-notes.md
+          else
+            echo "::warning::No CHANGELOG.md section for $VERSION — using auto-generated notes."
+          fi
+      # The release may already exist (v1.0.0 was created by hand): reuse it
+      # and just attach the asset. --clobber makes re-runs idempotent.
+      - name: Attach signed plugin to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ZIP=$(ls build/distributions/*-signed.zip)
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$ZIP" --repo "$GITHUB_REPOSITORY" --clobber
+          elif [ -s release-notes.md ]; then
+            gh release create "$GITHUB_REF_NAME" "$ZIP" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file release-notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" "$ZIP" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+          fi
+      - name: Publish to JetBrains Marketplace
+        if: env.PUBLISH_TOKEN != ''
+        run: gradle --no-daemon publishPlugin
+      - name: Marketplace publish skipped
+        if: env.PUBLISH_TOKEN == ''
+        run: echo "::notice::PUBLISH_TOKEN secret not configured — skipped JetBrains Marketplace publish."
