@@ -34,7 +34,7 @@ jobs:
       # moved tag can't inject code into a secret-bearing job.
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
-      - uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
+      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
       # Packaging must never depend on Marketplace publishing succeeding
       # (the v1.0.0 release produced no asset because publishPlugin failed
       # in the same Gradle invocation), so publishPlugin runs separately below.
