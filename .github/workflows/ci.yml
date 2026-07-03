@@ -35,12 +35,12 @@ jobs:
       # The wrapper (not the runner's preinstalled Gradle) so CI builds with the
       # same pinned Gradle version as local builds.
       - run: ./gradlew --no-daemon test buildPlugin verifyPlugin
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: success()
         with:
           name: plugin-zip
           path: build/distributions/*.zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: verifier-report
