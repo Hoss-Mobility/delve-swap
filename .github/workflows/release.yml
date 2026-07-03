@@ -1,0 +1,101 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+
+# contents: write is required to create the GitHub Release and upload assets;
+# the default GITHUB_TOKEN is read-only.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The gh CLI below authenticates via GH_TOKEN; no step needs git
+          # credentials, so don't leave the write-capable token in .git/config
+          # while Gradle executes third-party plugin code.
+          persist-credentials: false
+      # verifyPlugin downloads two full GoLand IDEs (261 + 262) plus the
+      # platform SDK and ~1.5 GB of plugin dependencies, which overruns the
+      # default runner disk. Reclaim the preinstalled toolchains we don't use.
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force || true
+          df -h /
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      # Non-GitHub-owned actions are pinned to a commit SHA so a compromised or
+      # moved tag can't inject code into a secret-bearing job.
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
+      - uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # v3.5.0
+      # Packaging must never depend on Marketplace publishing succeeding
+      # (the v1.0.0 release produced no asset because publishPlugin failed
+      # in the same Gradle invocation), so publishPlugin runs separately below.
+      # Signing secrets are scoped to this step only.
+      - name: Build, verify, sign
+        run: ./gradlew --no-daemon test buildPlugin verifyPlugin signPlugin
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: verifier-report
+          path: build/reports/pluginVerifier/**
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" {flag=1; next}
+            /^## \[/ {flag=0}
+            flag' CHANGELOG.md > release-notes.md
+          if [ -s release-notes.md ]; then
+            echo "Extracted notes for $VERSION:"
+            cat release-notes.md
+          else
+            echo "::warning::No CHANGELOG.md section for $VERSION — using auto-generated notes."
+          fi
+      # The release may already exist (v1.0.0 was created by hand): reuse it
+      # and just attach the asset. --clobber makes re-runs idempotent.
+      - name: Attach signed plugin to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ZIP="build/distributions/delveswap-${GITHUB_REF_NAME#v}-signed.zip"
+          if [ ! -f "$ZIP" ]; then
+            echo "::error::$ZIP not found — signing secrets missing, or tag does not match pluginVersion in gradle.properties."
+            exit 1
+          fi
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$ZIP" --repo "$GITHUB_REPOSITORY" --clobber
+          elif [ -s release-notes.md ]; then
+            gh release create "$GITHUB_REF_NAME" "$ZIP" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file release-notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" "$ZIP" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
+          fi
+      # The secrets context is not available in step-level `if:`, so gate via a
+      # step output computed from a boolean env mapping. Only the boolean leaves
+      # this step — the token itself is scoped to the publish step below, keeping
+      # it out of the environment of the Gradle build (which executes third-party
+      # plugin code).
+      - name: Check whether Marketplace publish is configured
+        id: marketplace
+        env:
+          HAS_TOKEN: ${{ secrets.PUBLISH_TOKEN != '' }}
+        run: echo "enabled=$HAS_TOKEN" >> "$GITHUB_OUTPUT"
+      - name: Publish to JetBrains Marketplace
+        if: steps.marketplace.outputs.enabled == 'true'
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: ./gradlew --no-daemon publishPlugin
+      - name: Marketplace publish skipped
+        if: steps.marketplace.outputs.enabled != 'true'
+        run: echo "::notice::PUBLISH_TOKEN secret not configured — skipped JetBrains Marketplace publish."

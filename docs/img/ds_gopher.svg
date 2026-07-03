@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-label="DelveSwap: the Go gopher juggling Delve chips for x86, ARM, RISC-V and more">
+  <!-- The DelveSwap gopher is based on the Go gopher, designed by Renée French (CC BY 4.0). -->
+
+  <!-- juggling arc -->
+  <path d="M 154 222 Q 320 48 486 222" fill="none" stroke="#C6CFD8" stroke-width="5" stroke-dasharray="1.5 15" stroke-linecap="round"/>
+
+  <!-- motion lines -->
+  <g stroke="#BCC7D1" stroke-width="4" stroke-linecap="round">
+    <line x1="116" y1="296" x2="127" y2="276"/>
+    <line x1="138" y1="305" x2="149" y2="285"/>
+    <line x1="524" y1="296" x2="513" y2="276"/>
+    <line x1="502" y1="305" x2="491" y2="285"/>
+  </g>
+
+  <!-- chips -->
+  <g transform="translate(152 232) rotate(-14)">
+    <g fill="#C9A24B">
+      <rect x="-51" y="-21" width="10" height="9" rx="2"/>
+      <rect x="-51" y="-4" width="10" height="9" rx="2"/>
+      <rect x="-51" y="13" width="10" height="9" rx="2"/>
+      <rect x="41" y="-21" width="10" height="9" rx="2"/>
+      <rect x="41" y="-4" width="10" height="9" rx="2"/>
+      <rect x="41" y="13" width="10" height="9" rx="2"/>
+    </g>
+    <rect x="-43" y="-30" width="86" height="60" rx="10" fill="#2B3137" stroke="#6CA9FF" stroke-width="3.5"/>
+    <circle cx="-31" cy="-18" r="3" fill="#525A63"/>
+    <text x="0" y="8" text-anchor="middle" font-family="Verdana, 'DejaVu Sans', sans-serif" font-weight="bold" font-size="20" fill="#6CA9FF">x86</text>
+  </g>
+
+  <g transform="translate(243 126) rotate(-5)">
+    <g fill="#C9A24B">
+      <rect x="-51" y="-21" width="10" height="9" rx="2"/>
+      <rect x="-51" y="-4" width="10" height="9" rx="2"/>
+      <rect x="-51" y="13" width="10" height="9" rx="2"/>
+      <rect x="41" y="-21" width="10" height="9" rx="2"/>
+      <rect x="41" y="-4" width="10" height="9" rx="2"/>
+      <rect x="41" y="13" width="10" height="9" rx="2"/>
+    </g>
+    <rect x="-43" y="-30" width="86" height="60" rx="10" fill="#2B3137" stroke="#4ED98A" stroke-width="3.5"/>
+    <circle cx="-31" cy="-18" r="3" fill="#525A63"/>
+    <text x="0" y="8" text-anchor="middle" font-family="Verdana, 'DejaVu Sans', sans-serif" font-weight="bold" font-size="20" fill="#4ED98A">ARM</text>
+  </g>
+
+  <g transform="translate(397 126) rotate(5)">
+    <g fill="#C9A24B">
+      <rect x="-51" y="-21" width="10" height="9" rx="2"/>
+      <rect x="-51" y="-4" width="10" height="9" rx="2"/>
+      <rect x="-51" y="13" width="10" height="9" rx="2"/>
+      <rect x="41" y="-21" width="10" height="9" rx="2"/>
+      <rect x="41" y="-4" width="10" height="9" rx="2"/>
+      <rect x="41" y="13" width="10" height="9" rx="2"/>
+    </g>
+    <rect x="-43" y="-30" width="86" height="60" rx="10" fill="#2B3137" stroke="#FFB454" stroke-width="3.5"/>
+    <circle cx="-31" cy="-18" r="3" fill="#525A63"/>
+    <text x="0" y="6" text-anchor="middle" font-family="Verdana, 'DejaVu Sans', sans-serif" font-weight="bold" font-size="15" fill="#FFB454">RISC-V</text>
+  </g>
+
+  <g transform="translate(488 232) rotate(14)">
+    <g fill="#C9A24B">
+      <rect x="-51" y="-21" width="10" height="9" rx="2"/>
+      <rect x="-51" y="-4" width="10" height="9" rx="2"/>
+      <rect x="-51" y="13" width="10" height="9" rx="2"/>
+      <rect x="41" y="-21" width="10" height="9" rx="2"/>
+      <rect x="41" y="-4" width="10" height="9" rx="2"/>
+      <rect x="41" y="13" width="10" height="9" rx="2"/>
+    </g>
+    <rect x="-43" y="-30" width="86" height="60" rx="10" fill="#2B3137" stroke="#C5A8FF" stroke-width="3.5"/>
+    <circle cx="-31" cy="-18" r="3" fill="#525A63"/>
+    <text x="0" y="9" text-anchor="middle" font-family="Verdana, 'DejaVu Sans', sans-serif" font-weight="bold" font-size="28" fill="#C5A8FF">···</text>
+  </g>
+
+  <!-- ground shadow -->
+  <ellipse cx="320" cy="510" rx="115" ry="12" fill="#1F2937" opacity="0.12"/>
+
+  <!-- ears: lateral on the upper corners, solid inner dot (behind body) -->
+  <circle cx="245" cy="215" r="17.2" fill="#6AD7E5" stroke="#1A1A1A" stroke-width="3.5"/>
+  <circle cx="400" cy="213" r="17.2" fill="#6AD7E5" stroke="#1A1A1A" stroke-width="3.5"/>
+  <circle cx="246" cy="209" r="5" fill="#1A1A1A"/>
+  <circle cx="396" cy="206" r="5" fill="#1A1A1A"/>
+
+  <!-- tiny pointy hands, raised for the juggle (behind body) -->
+  <ellipse cx="210" cy="290" rx="8" ry="17" transform="rotate(-40 210 290)" fill="#F6D2A2" stroke="#1A1A1A" stroke-width="3.5"/>
+  <ellipse cx="430" cy="290" rx="8" ry="17" transform="rotate(40 430 290)" fill="#F6D2A2" stroke="#1A1A1A" stroke-width="3.5"/>
+
+  <!-- feet splayed at the bottom corners (behind body) -->
+  <ellipse cx="244" cy="490" rx="26" ry="12" transform="rotate(-26 244 490)" fill="#F6D2A2" stroke="#1A1A1A" stroke-width="3.5"/>
+  <ellipse cx="396" cy="490" rx="26" ry="12" transform="rotate(26 396 490)" fill="#F6D2A2" stroke="#1A1A1A" stroke-width="3.5"/>
+
+  <!-- body: slim tall capsule -->
+  <path d="M 320 185 C 264 185 232 222 226 292 C 222 350 220 430 232 462 C 246 498 280 502 320 502 C 360 502 394 498 408 462 C 420 430 418 350 414 292 C 408 222 376 185 320 185 Z" fill="#6AD7E5" stroke="#1A1A1A" stroke-width="4.5"/>
+
+  <!-- equal wide-oval eyes near the top, small gap between, left eye a touch lower -->
+  <ellipse cx="281" cy="232" rx="29.5" ry="27" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="3.5"/>
+  <ellipse cx="357" cy="229" rx="29.5" ry="27" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="3.5"/>
+  <circle cx="266" cy="234" r="9.5" fill="#1A1A1A"/>
+  <circle cx="342" cy="231" r="9.5" fill="#1A1A1A"/>
+  <circle cx="270" cy="236.5" r="2.8" fill="#FFFFFF"/>
+  <circle cx="346" cy="233.5" r="2.8" fill="#FFFFFF"/>
+
+  <!-- wide flat muzzle, teeth hanging fully below it, broad black nose on top -->
+  <ellipse cx="322" cy="270" rx="23.5" ry="10.5" fill="#F6D2A2" stroke="#1A1A1A" stroke-width="3"/>
+  <rect x="307.5" y="277" width="11.5" height="21" rx="4.5" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2.5"/>
+  <rect x="322" y="277" width="11.5" height="21" rx="4.5" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2.5"/>
+  <ellipse cx="321" cy="259" rx="19" ry="10.5" fill="#1A1A1A"/>
+
+  <!-- wordmark -->
+  <text x="323" y="594" text-anchor="end" font-family="Verdana, 'DejaVu Sans', sans-serif" font-weight="bold" font-size="52" fill="#00ADD8">Delve</text>
+  <text x="323" y="594" text-anchor="start" font-family="Verdana, 'DejaVu Sans', sans-serif" font-weight="bold" font-size="52" fill="#24292F">Swap</text>
+</svg>
