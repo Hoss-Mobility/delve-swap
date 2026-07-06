@@ -2,10 +2,14 @@
 
 [![CI](https://github.com/Hoss-Mobility/delve-swap/actions/workflows/ci.yml/badge.svg)](https://github.com/Hoss-Mobility/delve-swap/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/jetbrains/plugin/v/32640-delveswap)](https://plugins.jetbrains.com/plugin/32640-delveswap?noRedirect=true)
+
 
 <p align="center">
-  <img src="docs/img/ds_gopher.svg" width="300" alt="DelveSwap — the Go gopher juggling Delve builds for x86, ARM, RISC-V and more">
+  <a href="https://plugins.jetbrains.com/plugin/32640-delveswap?noRedirect=true"></a> <img src="docs/img/ds_gopher.svg" width="300" alt="DelveSwap — the Go gopher juggling Delve builds for x86, ARM, RISC-V and more">
 </p>
+
+**tl;dr**: Get the Plugin from [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32640-delveswap) 
 
 Want to debug ARM, RISC-V, or other architectures using GoLand? Sick and tired of global magic variables
 and needing to restart the IDE after changing them? Look no further!
@@ -39,9 +43,7 @@ GoLand releases are verified).
 - **From disk:** download the latest `.zip` from
   [Releases](https://github.com/Hoss-Mobility/delve-swap/releases), then
   GoLand → Settings → Plugins → ⚙ → Install plugin from disk.
-- **Marketplace:** search "DelveSwap" under Settings → Plugins → Marketplace
-  (pending the first Marketplace release — use *From disk* until it appears).
-
+- **[Marketplace](https://plugins.jetbrains.com/plugin/32640-delveswap):** search "DelveSwap" under Settings → Plugins → Marketplace
 
 ## Why
 
