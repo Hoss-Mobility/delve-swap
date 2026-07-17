@@ -31,7 +31,7 @@ dependencies {
         // fix that concurrency bug. See CI run 26505542120.
         pluginVerifier(providers.gradleProperty("pluginVerifierVersion").get())
     }
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
