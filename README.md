@@ -37,7 +37,7 @@ the other (see [Limitations](#limitations) for one narrow exception).
 
 ## Install
 
-Requires GoLand **2026.1 – 2026.2** (the compatibility cap is raised as new
+Requires GoLand **2026.1 – 2026.3** (the compatibility cap is raised as new
 GoLand releases are verified).
 
 - **From disk:** download the latest `.zip` from
@@ -100,7 +100,7 @@ absolute paths.
 ## Contributing
 
 ```bash
-./gradlew test           # JUnit 5 unit tests, no IDE bootstrap
+./gradlew test           # JUnit 6 unit tests, no IDE bootstrap
 ./gradlew buildPlugin    # → build/distributions/delveswap-*.zip
 ./gradlew runIde         # sandbox GoLand with the plugin loaded
 ```

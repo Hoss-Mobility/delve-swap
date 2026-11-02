@@ -12,6 +12,11 @@
     ]]></description>
 
     <change-notes><![CDATA[
+        <b>1.1.1</b>
+        <ul>
+            <li>Compatibility cap raised to GoLand 2026.3 (verified against 2026.1, 2026.2 and the 2026.3 RC).</li>
+            <li>Build toolchain update (Gradle 9.8.2, Kotlin 2.4, IntelliJ Platform Gradle Plugin 2.19). No runtime behavior changes.</li>
+        </ul>
         <b>1.1.0</b>
         <ul>
             <li>Fixed: the GLOBAL tier now picks up edits to the IDE-wide <code>dlv.path</code> made after IDE startup; previously the value was snapshot once.</li>

@@ -6,6 +6,24 @@ All notable changes to DelveSwap are recorded here. Format follows
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-11-02
+
+### Changed
+
+- Compatibility cap raised to GoLand 2026.3 (`pluginUntilBuild = 263.*`);
+  verified against 261, 262 and the 2026.3 RC (263.7307.110).
+- Build toolchain updated: Gradle 9.3.0 → 9.8.2, Kotlin 2.4.21,
+  IntelliJ Platform Gradle Plugin 2.19.0, JUnit 6.1.3, IntelliJ Plugin
+  Verifier 1.411. `publishPlugin` now sets `archiveFiles` (the 2.19 API) so it
+  keeps uploading the signed zip. No runtime behavior changes.
+- CI: `actions/checkout@v7`, `actions/setup-java@v6`,
+  `actions/upload-artifact@v7`, `gradle/actions` v5.0.2 (SHA-pinned).
+
+### Removed
+
+- Historical design docs under `docs/superpowers/` (described older class
+  names; superseded by `.claude/CLAUDE.md`).
+
 ## [1.1.0] — 2026-06-03
 
 ### Changed

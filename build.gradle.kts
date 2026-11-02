@@ -1,7 +1,7 @@
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "2.2.0"
-    id("org.jetbrains.intellij.platform") version "2.16.0"
+    id("org.jetbrains.kotlin.jvm") version "2.4.21"
+    id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -31,7 +31,7 @@ dependencies {
         // fix that concurrency bug. See CI run 26505542120.
         pluginVerifier(providers.gradleProperty("pluginVerifierVersion").get())
     }
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -51,7 +51,7 @@ intellijPlatform {
         version = providers.gradleProperty("pluginVersion")
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
-            // Capped to next major (verifyPlugin in CI checks 261 + 262). Bump as new GoLand
+            // Capped to next major (verifyPlugin in CI checks 261, 262 + 263). Bump as new GoLand
             // releases ship — leaving it open would silently crash users on a future
             // incompatible GoLand instead of disabling the plugin.
             untilBuild = providers.gradleProperty("pluginUntilBuild")
@@ -76,7 +76,7 @@ tasks.publishPlugin {
     // where signPlugin is skipped/UP-TO-DATE (didWork=false), which would make
     // the default convention fall back to the UNSIGNED buildPlugin zip. Pin to
     // the signed artifact unconditionally.
-    archiveFile = tasks.signPlugin.flatMap { it.signedArchiveFile }
+    archiveFiles.setFrom(tasks.signPlugin.flatMap { it.signedArchiveFile })
 }
 
 // Set skipSearchableOptions=true locally to skip the IDE-launched indexing step.

@@ -35,7 +35,7 @@
 
 # Pinned to the same Gradle version as gradle/wrapper/gradle-wrapper.properties
 # so container builds and wrapper builds can't drift apart.
-FROM gradle:9.3.0-jdk21
+FROM gradle:9.8.2-jdk21
 
 WORKDIR /workspace
 
