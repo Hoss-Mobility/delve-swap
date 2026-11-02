@@ -8,7 +8,7 @@ contributions land in a single PR.
 ```bash
 git clone git@github.com:Hoss-Mobility/delve-swap.git
 cd delve-swap
-./gradlew test                      # JUnit 5, no IDE bootstrap, ~seconds
+./gradlew test                      # JUnit 6, no IDE bootstrap, ~seconds
 ./gradlew buildPlugin               # produces build/distributions/delveswap-*.zip
 ./gradlew runIde                    # launch sandbox GoLand with the plugin loaded
 ```
@@ -39,7 +39,7 @@ Set on the command line as `-P<name>=<value>` or in your local `~/.gradle/gradle
 ./gradlew verifyPlugin    # slow: pulls multiple GoLand builds (~1.5 GB)
 ```
 
-CI runs this on every PR against GoLand 261 and 262. If your change touches
+CI runs this on every PR against GoLand 261, 262 and 263. If your change touches
 internal Go-plugin APIs, expect the verifier to flag it.
 
 ## Code style
