@@ -11,7 +11,7 @@ DelveSwap is a JetBrains **GoLand** plugin that overrides the path to the Delve 
 Build / test / verify (use the Gradle wrapper):
 
 ```
-./gradlew test                                           # JUnit 5 unit tests (no IDE spin-up)
+./gradlew test                                           # JUnit 6 unit tests (no IDE spin-up)
 ./gradlew test --tests com.hoss.delveswap.DlvPathSwapListenerTest    # single class
 ./gradlew test --tests "*sessionKey*"                    # single test by name pattern
 ./gradlew buildPlugin                                    # → build/distributions/*.zip
@@ -19,7 +19,7 @@ Build / test / verify (use the Gradle wrapper):
 ./gradlew runIde                                         # launch sandbox GoLand with the plugin loaded
 ```
 
-JDK 21 is required (the IntelliJ Platform 2026.1 plugin pins to it). `settings.gradle.kts` includes the `foojay-resolver-convention` plugin so Gradle auto-downloads a matching JDK 21 if none is installed locally. CI provides JDK 21 explicitly via `actions/setup-java@v4` and the resolver is a no-op there.
+JDK 21 is required (the IntelliJ Platform 2026.1 plugin pins to it). `settings.gradle.kts` includes the `foojay-resolver-convention` plugin so Gradle auto-downloads a matching JDK 21 if none is installed locally. CI provides JDK 21 explicitly via `actions/setup-java@v6` and the resolver is a no-op there.
 
 Useful gradle properties (set via `-P<name>=...` or `gradle.properties`):
 
@@ -38,15 +38,15 @@ docker run --rm -v "$PWD":/workspace -v delve-plugin-gradle-cache:/home/gradle/.
 
 ## CI / release
 
-- `.github/workflows/ci.yml` runs `test buildPlugin verifyPlugin` on push to `main` and on PRs. It frees ~10 GB of preinstalled toolchains first because `verifyPlugin` pulls two full GoLand IDEs plus ~1.5 GB of plugin deps and overruns the default runner disk.
+- `.github/workflows/ci.yml` runs `test buildPlugin verifyPlugin` on push to `main` and on PRs. It frees ~10 GB of preinstalled toolchains first because `verifyPlugin` pulls three full GoLand IDEs (261, 262, 263) plus ~1.5 GB of plugin deps and overruns the default runner disk.
 - `.github/workflows/release.yml` triggers on tags matching `v*`: it tests/builds/verifies/signs, attaches the signed zip to the GitHub Release (creating it from the CHANGELOG section if needed), and publishes to JetBrains Marketplace only when the optional `PUBLISH_TOKEN` secret is set. Required secrets: `CERTIFICATE_CHAIN`, `PRIVATE_KEY`, `PRIVATE_KEY_PASSWORD`.
 - `pluginVersion` lives in `gradle.properties`. Bump it before tagging, and add a corresponding entry to `CHANGELOG.md` plus the `<change-notes>` block in `plugin.xml`.
 
 ## Toolchain pins (matter)
 
 - **Java/Kotlin: 21** (`build.gradle.kts`).
-- **GoLand 2026.1+ / build 261** (`platformVersion`, `pluginSinceBuild`), capped at `262.*` (`pluginUntilBuild` in `gradle.properties`). Bump the cap as new GoLand releases ship — `untilBuild = null` would silently crash users on a future incompatible GoLand instead of disabling the plugin.
-- **IntelliJ Plugin Verifier pinned to 1.405** via `pluginVerifierVersion`. The version bundled with the IntelliJ-Platform Gradle plugin crashes with `ClosedFileSystemException` when verifying against multiple GoLand builds in parallel; this pin is the workaround. Don't bump downward.
+- **GoLand 2026.1+ / build 261** (`platformVersion`, `pluginSinceBuild`), capped at `263.*` (`pluginUntilBuild` in `gradle.properties`). Bump the cap as new GoLand releases ship — `untilBuild = null` would silently crash users on a future incompatible GoLand instead of disabling the plugin.
+- **IntelliJ Plugin Verifier pinned to 1.411** via `pluginVerifierVersion`. The version bundled with the IntelliJ-Platform Gradle plugin crashes with `ClosedFileSystemException` when verifying against multiple GoLand builds in parallel; this pin is the workaround. Don't bump downward.
 
 ## Architecture — the big picture
 
@@ -78,7 +78,7 @@ Critical invariant: **every supported config asserts its resolved value**, inclu
 - Restores `original` only when the **last** session ends.
 - `baseline` returns the captured `original` while sessions are active (so a concurrent GLOBAL session asserts the user's setting, not a sibling's swap) and re-reads the backend when none are active.
 - While ≥2 sessions overlap, the backend value is the **most-recently-swapped** value (last-writer-wins).
-- **Known race:** two sessions scheduled close enough that both `swap()` calls run before either `startProcess` will both see the second swap's value. Rare in practice; a per-session bridge is tracked as a follow-up plan (see `docs/superpowers/`).
+- **Known race:** two sessions scheduled close enough that both `swap()` calls run before either `startProcess` will both see the second swap's value. Rare in practice; a per-session bridge is a possible follow-up.
 
 `SentinelStore` (instance-based, with `default()` for production and constructor injection for tests) writes the captured `original` to `<system>/delveswap/sentinel` on first swap and deletes it on final restore. `SentinelRecovery` (a `ProjectActivity`, `backgroundPostStartupActivity`) reads it on next IDE start to recover from a crash mid-session. It is gated by:
 
@@ -111,15 +111,13 @@ src/main/kotlin/com/hoss/delveswap/
 ├── DlvPathSwapListener.kt         # the ExecutionListener + DlvPathSwapper + SentinelStore +
 │                                  # GlobalDlvPathSwapper service + pure resolveForLaunch
 └── SentinelRecovery.kt            # ProjectActivity: replays sentinel on next IDE start
-src/test/kotlin/com/hoss/delveswap/    # JUnit 5; all pure-logic, no IDE bootstrap
+src/test/kotlin/com/hoss/delveswap/    # JUnit 6; all pure-logic, no IDE bootstrap
 src/main/resources/META-INF/plugin.xml      # extension-point wiring (Go-specific EP)
-docs/superpowers/{plans,specs}/             # dated design docs for in-flight changes (historical;
-                                            # mentions older class names like RegistrySwap*)
 ```
 
 ## Test strategy
 
-Tests are **pure JUnit 5**, no `BasePlatformTestCase` / no IDE harness. The codebase factors out pure functions (`resolveForLaunch`, `recoveryAction`, `sessionKeyFor`, `PathExpansion.expandEnv`, `DelvePathValidator.validate`) and uses a `TestDlvPathBackend` fake to drive `DlvPathSwapper` directly. `SentinelStore` takes a path constructor argument so tests use a `@TempDir`. Keep new logic factored this way — anything that needs an IDE-spinning test is a smell here.
+Tests are **pure JUnit 6** (Jupiter API), no `BasePlatformTestCase` / no IDE harness. The codebase factors out pure functions (`resolveForLaunch`, `recoveryAction`, `sessionKeyFor`, `PathExpansion.expandEnv`, `DelvePathValidator.validate`) and uses a `TestDlvPathBackend` fake to drive `DlvPathSwapper` directly. `SentinelStore` takes a path constructor argument so tests use a `@TempDir`. Keep new logic factored this way — anything that needs an IDE-spinning test is a smell here.
 
 ## Trust boundary (important)
 
